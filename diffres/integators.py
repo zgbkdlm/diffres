@@ -25,3 +25,7 @@ def lord_and_rougemont(a, f, b, x, t, dt):
 def jentzen_and_kloeden(a, f, b, x, t, dt):
     sg = jnp.exp(dt * a)
     return sg * x + (sg - 1.) / a * f(x, t), b * ((sg ** 2 - 1.) / 2) ** 0.5
+
+
+def tweedie():
+    pass

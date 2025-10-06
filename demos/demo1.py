@@ -21,7 +21,7 @@ post_ws = jnp.exp(log_post_ws)
 # Resample
 key, _ = jax.random.split(key)
 ts = jnp.linspace(0, 2, 100)
-ys = diffusion_resampling(key, log_post_ws, xs, 0.5, ts, integrator='lord_and_rougemont')
+ys = diffusion_resampling(key, log_post_ws, xs, 0.5, ts, integrator='euler')
 
 plt.hist(xs[:, 0], bins=64, density=True, alpha=.3, label='Prior')
 plt.hist(xs[:, 0], weights=post_ws, bins=64, density=True, color='black', alpha=.3, label='Posterior')

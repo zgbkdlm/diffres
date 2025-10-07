@@ -4,8 +4,8 @@ Tools that I often use in my projects.
 import jax
 import math
 import jax.numpy as jnp
-from diffres.typings import JArray, JKey, Array, JFloat
-from typing import Callable
+from diffres.typings import JArray, JKey, Array, JFloat, FloatScalar
+from typing import Callable, Tuple
 
 
 def leading_concat(a: JArray, b: JArray) -> JArray:
@@ -202,6 +202,52 @@ def sampling_gm(key: JKey, ws: Array, ms: Array, eigvals: Array, eigvecs: Array)
     return ms[ind] + eigvecs[ind] @ (eigvals[ind] ** 0.5 * jax.random.normal(key_nor, (d,)))
 
 
+def make_gm_bridge(ws0, ms0, eigvals0, eigvecs0, a, b, t0, T, fwd_denoising: bool = False):
+    """Make a diffusion bridge between two Gaussian mixtures.
+    """
+
+    def drift(x, t):
+        return a * x
+
+    def dispersion(t):
+        return b
+
+    def logpdf_kth(x, m, u, d, t):
+        dt = t - t0
+        pushfwd_m = jnp.exp(a * dt) * m
+        pushfwd_d = jnp.exp(2 * a * dt) * d + (b ** 2 / (2 * a) * (jnp.exp(2 * a * dt) - 1))
+        return logpdf_mvn(x, pushfwd_m, pushfwd_d, u)
+
+    def logpdf(x, t):
+        return jax.scipy.special.logsumexp(
+            jax.vmap(logpdf_kth, in_axes=[None, 0, 0, 0, None])(x, ms0, eigvecs0, eigvals0, t), b=ws0)
+
+    def score(x, t):
+        return jax.grad(logpdf)(x, t)
+
+    def deno_drift(u, t):
+        if fwd_denoising:
+            return -drift(u, T - t) + dispersion(T - t) ** 2 * score(u, T - t)
+        else:
+            return drift(u, t) - dispersion(t) ** 2 * score(u, t)
+
+    def deno_dispersion(t):
+        if fwd_denoising:
+            return dispersion(T - t)
+        else:
+            return dispersion(t)
+
+    wTs = ws0
+    mTs = jnp.exp(a * (T - t0)) * ms0
+    eigvalTs = jnp.exp(2 * a * (T - t0)) * eigvals0 + (b ** 2 / (2 * a) * (jnp.exp(2 * a * (T - t0)) - 1))
+
+    return wTs, mTs, eigvalTs, score, deno_drift, deno_dispersion
+
+
+def logpdf_gm(x, ws, ms, eigvals, eigvecs):
+    return jax.scipy.special.logsumexp(jax.vmap(logpdf_mvn, in_axes=[None, 0, 0, 0])(x, ms, eigvals, eigvecs), b=ws)
+
+
 def logpdf_mvn(x, m, eigvals, eigvecs):
     """Log pdf of a multivariate Normal distribution (without known eigendecomposition).
     """
@@ -216,10 +262,6 @@ def logpdf_mvn_chol(x: JArray, m: JArray, chol: JArray) -> JFloat:
     z = jax.lax.linalg.triangular_solve(chol, x - m, left_side=True, lower=True)
     log_det = jnp.sum(jnp.log(jnp.diag(chol)))
     return -0.5 * (jnp.dot(z, z) + n * math.log(2 * math.pi) + 2 * log_det)
-
-
-def logpdf_gm(x, ws, ms, eigvals, eigvecs):
-    return jax.scipy.special.logsumexp(jax.vmap(logpdf_mvn, in_axes=[None, 0, 0, 0])(x, ms, eigvals, eigvecs), b=ws)
 
 
 def chol_solve(chol, b, lower=True):

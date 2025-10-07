@@ -27,6 +27,7 @@ classifiers = [
 ]
 keywords = ['Markov models']
 dependencies = [
+    'pytest',
     'numpy==2.3.3',
     'jax==0.7.2',
     'jaxlib==0.7.2',

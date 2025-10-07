@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from diffres.integators import lord_and_rougemont, jentzen_and_kloeden
+from diffres.integators import lord_and_rougemont, jentzen_and_kloeden, tweedie
 from diffres.typings import JArray, JKey
 from functools import partial
 
@@ -53,7 +53,7 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     samples : JArray (n, ...)
         Particles.
     a : float
-        The forward noising parameter, must be positive.
+        The forward noising parameter, must be negative.
     ts : JArray (nsteps + 1, )
         Time steps t0, t1, ..., tnsteps.
     integrator : str
@@ -65,13 +65,14 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     ws = jnp.exp(log_ws)
     mu = jnp.einsum('i,i...->...', ws, samples)
     stat_vars = jnp.einsum('i,i...->...', ws, (samples - mu) ** 2)
-    b2 = stat_vars / (2 * a)
+    b2 = -stat_vars / (2 * a)
+    T = ts[-1]
 
     def fwd_coeffs(x0, t):
         """
         x0 : (n, ...)
         """
-        semigroup = jnp.exp(-a * t)
+        semigroup = jnp.exp(a * t)
         mt = x0 * semigroup + mu * (1 - semigroup)
         sig2t = stat_vars * (1 - semigroup ** 2)
         return mt, sig2t
@@ -100,19 +101,23 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         dt = tk - t_km1
         rnd = jax.random.normal(key_k, (n, *data_shape))
         if integrator == 'euler':
-            x_km1 = xk + (a * (xk - mu) + b2 * jax.vmap(s, in_axes=[0, None])(xk, tk)) * dt + (b2 * dt) ** 0.5 * rnd
+            x_km1 = xk + (-a * (xk - mu) + b2 * jax.vmap(s, in_axes=[0, None])(xk, tk)) * dt + (b2 * dt) ** 0.5 * rnd
         elif integrator == 'lord_and_rougemont':
-            drift = lambda x, t: -a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, tk)
-            m, scale = lord_and_rougemont(a, drift, b2 ** 0.5, xk, tk, dt)
+            drift = lambda x, t: a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, T - tk)
+            m, scale = lord_and_rougemont(-a, drift, b2 ** 0.5, xk, tk, dt)
             x_km1 = m + scale * rnd
         elif integrator == 'jentzen_and_kloeden':
             drift = lambda x, t: -a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, tk)
             m, scale = jentzen_and_kloeden(a, drift, b2 ** 0.5, xk, tk, dt)
             x_km1 = m + scale * rnd
+        elif integrator == 'tweedie':
+            sg = jnp.exp(a * dt)
+            trans_var = stat_vars * (1 - sg ** 2)
+            x_km1 = tweedie(sg, trans_var, s, mu, xk, tk) + (b2 * dt) ** 0.5 * rnd
         else:
             raise ValueError(f'Unknown integrator {integrator}.')
         return x_km1, None
     key, _ = jax.random.split(key)
     keys = jax.random.split(key, num=nsteps)
-    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], keys))
+    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], keys), reverse=True)
     return x0s

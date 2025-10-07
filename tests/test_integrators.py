@@ -40,15 +40,11 @@ wTs, mTs, eigvalTs, score, _, _ = make_gm_bridge(ws, ms, eigvals, eigvecs, a, b,
 
 # Reversal SDE (in fwd time flow)
 def f(x, t):
-    return score(x, T - t)
+    return b ** 2 * score(x, T - t)
 
 
 def drift(x, t):
-    return -a * x + b ** 2 * f(x, t)
-
-
-def dispersion(t):
-    return b
+    return -a * x + f(x, t)
 
 
 key, _ = jax.random.split(key)
@@ -72,8 +68,8 @@ def sampler_euler(key_, x_ref):
         x = carry
         t_km1, tk, rnd = elem
 
-        dt_ = tk - t_km1
-        m_, scale_ = x + drift(x, t_km1) * dt_, dispersion(t_km1) * dt_ ** 0.5
+        dt = tk - t_km1
+        m_, scale_ = euler_maruyama(drift, b, x, t_km1, dt)
         return m_ + scale_ * rnd, None
 
     rnds = jax.random.normal(key_, shape=(nsteps, d))
@@ -87,9 +83,9 @@ def sampler_lord(key_, x_ref):
         x = carry
         t_km1, tk, rnd = elem
 
-        dt_ = tk - t_km1
-        sg = jnp.exp(-a * dt_)
-        return sg * x + dt_ * sg * f(x, t_km1) + sg * b * dt_ ** 0.5 * rnd, None
+        dt = tk - t_km1
+        m_, scale_ = lord_and_rougemont(-a, f, b, x, t_km1, dt)
+        return m_ + scale_ * rnd, None
 
     rnds = jax.random.normal(key_, shape=(nsteps, d))
     return jax.lax.scan(body_lord, x_ref, (ts[:-1], ts[1:], rnds))[0]

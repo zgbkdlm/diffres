@@ -26,7 +26,7 @@ xs_stratified = xs[inds]
 # Resample
 key, _ = jax.random.split(key)
 ts = jnp.linspace(0, 1., 10)
-ys = diffusion_resampling(key, log_post_ws, xs, -0.5, ts, integrator='euler')
+ys = diffusion_resampling(key, log_post_ws, xs, -0.5, ts, integrator='lord_and_rougemont')
 
 # plt.hist(xs[:, 0], bins=64, density=True, alpha=.1, label='Prior')
 plt.hist(xs[:, 0], weights=post_ws, bins=100, density=True, color='black', alpha=.1, label='Posterior')

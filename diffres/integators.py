@@ -4,9 +4,9 @@ from diffres.typings import FloatScalar, JArray
 from typing import Callable, Tuple
 
 
-def euler_maruyama(drift, dispersion, x, t, dt) -> Tuple[JArray, JArray]:
+def euler_maruyama(drift, b, x, t, dt) -> Tuple[JArray, JArray]:
     """
-    dX(t) = f(X(t), t) dt + g(t) dW(t)
+    dX(t) = f(X(t), t) dt + b dW(t)
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ def euler_maruyama(drift, dispersion, x, t, dt) -> Tuple[JArray, JArray]:
     (d, ), (d, )
         Mean and scale for the move.
     """
-    return x + drift(x, t) * dt, dt ** 0.5 * dispersion(t)
+    return x + drift(x, t) * dt, dt ** 0.5 * b
 
 
 def lord_and_rougemont(a: FloatScalar,
@@ -110,4 +110,6 @@ def jentzen_and_kloeden(a: FloatScalar,
 
 
 def tweedie(semigroup, trans_var, score, mu, x, t):
+    """Not tested.
+    """
     return (x - (1 - semigroup) * mu + trans_var * score(x, t)) / semigroup

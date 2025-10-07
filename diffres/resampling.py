@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from diffres.integators import lord_and_rougemont, jentzen_and_kloeden, tweedie
+from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden, tweedie
 from diffres.typings import JArray, JKey
 from functools import partial
 
@@ -90,34 +90,31 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         log_alps = log_alps - jax.scipy.special.logsumexp(log_alps)
         return jnp.einsum('i,i...->...', jnp.exp(log_alps), -(x - mts) / sig2ts)
 
-    # Euler--Maruyama
+    def f(x, t):
+        return a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, T - t)
+
+    def drift(x, t):
+        return -a * x + f(x, t)
+
+    # SDE simulation
     key, _ = jax.random.split(key)
     xTs = mu + stat_vars ** 0.5 * jax.random.normal(key, (n, *data_shape))
 
     def scan_body(carry, elem):
-        xk = carry
+        x = carry
         t_km1, tk, key_k = elem
 
         dt = tk - t_km1
         rnd = jax.random.normal(key_k, (n, *data_shape))
         if integrator == 'euler':
-            x_km1 = xk + (-a * (xk - mu) + b2 * jax.vmap(s, in_axes=[0, None])(xk, tk)) * dt + (b2 * dt) ** 0.5 * rnd
+            m, scale = euler_maruyama(drift, b2 ** 0.5, x, t_km1, dt)
         elif integrator == 'lord_and_rougemont':
-            drift = lambda x, t: a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, T - tk)
-            m, scale = lord_and_rougemont(-a, drift, b2 ** 0.5, xk, tk, dt)
-            x_km1 = m + scale * rnd
-        elif integrator == 'jentzen_and_kloeden':
-            drift = lambda x, t: -a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, tk)
-            m, scale = jentzen_and_kloeden(a, drift, b2 ** 0.5, xk, tk, dt)
-            x_km1 = m + scale * rnd
-        elif integrator == 'tweedie':
-            sg = jnp.exp(a * dt)
-            trans_var = stat_vars * (1 - sg ** 2)
-            x_km1 = tweedie(sg, trans_var, s, mu, xk, tk) + (b2 * dt) ** 0.5 * rnd
+            m, scale = lord_and_rougemont(-a, f, b2 ** 0.5, x, t_km1, dt)
         else:
             raise ValueError(f'Unknown integrator {integrator}.')
-        return x_km1, None
+        return m + scale * rnd, None
+
     key, _ = jax.random.split(key)
     keys = jax.random.split(key, num=nsteps)
-    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], keys), reverse=True)
+    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], keys))
     return x0s

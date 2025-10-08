@@ -100,10 +100,6 @@ def jentzen_and_kloeden(a: FloatScalar,
     ----------
     Buckwar et al. "The numerical stability of stochastic ordinary differential equations with additive noise."
     Stochastics and Dynamics (2011).
-
-    Notes
-    -----
-    Bug somewhere could not find.
     """
     sg = jnp.exp(dt * a)
     return sg * x + (sg - 1.) / a * f(x, t), b * ((sg ** 2 - 1.) / (2 * a)) ** 0.5

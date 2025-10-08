@@ -24,7 +24,7 @@ def _systematic_or_stratified(key: JKey, weights: JArray, is_systematic: bool) -
 
 
 def systematic(key: JKey, weights: JArray) -> JArray:
-    return _systematic_or_stratified(weights, key, True)
+    return _systematic_or_stratified(key, weights, True)
 
 
 def stratified(key: JKey, weights: JArray) -> JArray:
@@ -41,7 +41,7 @@ def multinomial(key: JKey, weights: JArray) -> JArray:
 
 
 def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
-                         integrator: str = 'euler'):
+                         integrator: str = 'lord_and_rougemont'):
     """Differentiable resampling using ensemble score.
 
     Parameters
@@ -58,6 +58,8 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         Time steps t0, t1, ..., tnsteps.
     integrator : str
         The SDE integrator.
+
+    #TODO: Double-check the routine for datashape
     """
     n = log_ws.shape[0]
     data_shape = samples.shape[1:]
@@ -110,6 +112,8 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
             m, scale = euler_maruyama(drift, b2 ** 0.5, x, t_km1, dt)
         elif integrator == 'lord_and_rougemont':
             m, scale = lord_and_rougemont(-a, f, b2 ** 0.5, x, t_km1, dt)
+        elif integrator == 'jentzen_and_kloeden':
+            m, scale = jentzen_and_kloeden(-a, f, b2 ** 0.5, x, t_km1, dt)
         else:
             raise ValueError(f'Unknown integrator {integrator}.')
         return m + scale * rnd, None

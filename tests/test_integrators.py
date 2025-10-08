@@ -61,17 +61,36 @@ def swd(samples1, samples2):
     return sliced_wasserstein(samples1, samples2, n_proj=1000)[0]
 
 
+def body_euler(carry, elem):
+    x = carry
+    t_km1, tk, rnd = elem
+
+    dt = tk - t_km1
+    m_, scale_ = euler_maruyama(drift, b, x, t_km1, dt)
+    return m_ + scale_ * rnd, None
+
+
+def body_lord(carry, elem):
+    x = carry
+    t_km1, tk, rnd = elem
+
+    dt = tk - t_km1
+    m_, scale_ = lord_and_rougemont(-a, f, b, x, t_km1, dt)
+    return m_ + scale_ * rnd, None
+
+
+def body_jentzen(carry, elem):
+    x = carry
+    t_km1, tk, rnd = elem
+
+    dt = tk - t_km1
+    m_, scale_ = jentzen_and_kloeden(-a, f, b, x, t_km1, dt)
+    return m_ + scale_ * rnd, None
+
+
 @jax.jit
 @partial(jax.vmap, in_axes=[0, 0])
 def sampler_euler(key_, x_ref):
-    def body_euler(carry, elem):
-        x = carry
-        t_km1, tk, rnd = elem
-
-        dt = tk - t_km1
-        m_, scale_ = euler_maruyama(drift, b, x, t_km1, dt)
-        return m_ + scale_ * rnd, None
-
     rnds = jax.random.normal(key_, shape=(nsteps, d))
     return jax.lax.scan(body_euler, x_ref, (ts[:-1], ts[1:], rnds))[0]
 
@@ -79,16 +98,15 @@ def sampler_euler(key_, x_ref):
 @jax.jit
 @partial(jax.vmap, in_axes=[0, 0])
 def sampler_lord(key_, x_ref):
-    def body_lord(carry, elem):
-        x = carry
-        t_km1, tk, rnd = elem
-
-        dt = tk - t_km1
-        m_, scale_ = lord_and_rougemont(-a, f, b, x, t_km1, dt)
-        return m_ + scale_ * rnd, None
-
     rnds = jax.random.normal(key_, shape=(nsteps, d))
     return jax.lax.scan(body_lord, x_ref, (ts[:-1], ts[1:], rnds))[0]
+
+
+@jax.jit
+@partial(jax.vmap, in_axes=[0, 0])
+def sampler_jentzen(key_, x_ref):
+    rnds = jax.random.normal(key_, shape=(nsteps, d))
+    return jax.lax.scan(body_jentzen, x_ref, (ts[:-1], ts[1:], rnds))[0]
 
 
 def test_integrators():
@@ -96,9 +114,12 @@ def test_integrators():
     keys = jax.random.split(key, num=nsamples)
     x0s_euler = sampler_euler(keys, xTs)
     x0s_lord = sampler_lord(keys, xTs)
+    x0s_jentzen = sampler_jentzen(keys, xTs)
 
     err_euler = swd(x0s, x0s_euler)
     err_lord = swd(x0s, x0s_lord)
+    err_jentzen = swd(x0s, x0s_jentzen)
 
     npt.assert_allclose(err_euler, 0., atol=3e-2)
     npt.assert_allclose(err_lord, 0., atol=2e-2)
+    npt.assert_allclose(err_jentzen, 0., atol=2e-2)

@@ -2,6 +2,9 @@ import jax
 import jax.numpy as jnp
 from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden, tweedie
 from diffres.typings import JArray, JKey
+from ott.geometry import pointcloud
+from ott.problems.linear import linear_problem
+from ott.solvers.linear import sinkhorn
 from typing import Tuple
 
 
@@ -33,17 +36,36 @@ def stratified(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray,
     return _systematic_or_stratified(key, jnp.exp(log_weights), samples, False)
 
 
-def multinomial(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
+def _multinomial(key: JKey, log_weights: JArray) -> JArray:
     weights = jnp.exp(log_weights)
     n = weights.shape[0]
     idx = jnp.searchsorted(jnp.cumsum(weights),
                            _sorted_uniforms(n, key))
-    inds = jnp.clip(idx, 0, n - 1)
+    return jnp.clip(idx, 0, n - 1)
+
+
+def multinomial(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
+    n = log_weights.shape[0]
+    inds = _multinomial(key, log_weights)
     return jnp.full((n,), -jnp.log(n)), samples[inds]
 
 
-def multinomial_stopped():
-    pass
+def multinomial_stopped(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
+    n = log_weights.shape[0]
+    inds = _multinomial(key, jax.lax.stop_gradient(log_weights))
+    return jnp.full((n,), -jnp.log(n)) + log_weights[inds] - jax.lax.stop_gradient(log_weights[inds]), samples[inds]
+
+
+def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None):
+    n = log_ws.shape[0]
+    if eps is None:
+        eps = 1 / jnp.log(n)
+    geom = pointcloud.PointCloud(samples, samples, epsilon=eps)
+    prob = linear_problem.LinearProblem(geom,
+                                        a=jnp.full((n,), 1 / n), b=jnp.exp(log_ws))
+    solver = sinkhorn.Sinkhorn()
+    out = solver(prob)
+    return jnp.full((n,), -jnp.log(n)), out.matrix @ samples * n
 
 
 def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,

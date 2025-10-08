@@ -22,7 +22,7 @@ def smc_feynman_kac(key: JKey,
                     scan_pytree: PyTree,
                     nparticles: int,
                     nsteps: int,
-                    resampling: Callable[[JKey, JArray], JArray],
+                    resampling: Callable[[JKey, JArray, JArray], JArray],
                     resampling_threshold: float = 1.,
                     return_path: bool = False) -> Tuple[JArray, JArray, JArray]:
     r"""Sequential Monte Carlo simulation of a Feynman--Kac model.
@@ -43,7 +43,7 @@ def smc_feynman_kac(key: JKey,
         The Markov proposal and log potential at time k.
         From left to right, the arguments are, key, input samples, and a pytree parameter.
         The output is a pair of arrays with leading axis of the input samples array.
-        The first output is the (log) weights, followed by the proposed samples.
+        The first output is the (unnormalised log) weights, followed by the proposed samples.
     scan_pytree : PyTree
         A PyTree container that is going to be scanned over scan steps. The elements should have a consistent leading
         axis of size `N`. This container will be a tree-parameter input to the transition kernel and the potential function.
@@ -67,39 +67,46 @@ def smc_feynman_kac(key: JKey,
     `(N + 1, s, ...), (N + 1, s), (N + 1, )`. Else are (s, ...), (s, ), (N + 1, ).
     """
     key_init, key_body = jax.random.split(key)
-    flat_log_ws = -math.log(nparticles) * jnp.ones(nparticles)
 
     if callable(m0):
         samples0 = m0(key_init)
     else:
         samples0 = m0
     log_ws0_ = log_g0(samples0)
-    log_ws0 = log_ws0_ - jax.scipy.special.logsumexp(log_ws0_)
+    c = jax.scipy.special.logsumexp(log_ws0_)
+    log_ws0 = log_ws0_ - c
+    nll0 = -c
     ess0 = compute_ess(log_ws0)
 
     def scan_body(carry, elem):
-        samples, log_ws, ess = carry
+        samples, log_ws, nll_, ess = carry
         pytree, key_k = elem
         key_resample, key_markov = jax.random.split(key_k)
 
-        samples, log_ws = jax.lax.cond(ess < resampling_threshold * nparticles,
-                                       lambda _: (samples[resampling(key_resample, log_ws)], flat_log_ws),
-                                       lambda _: (samples, log_ws),
+        log_ws, samples = jax.lax.cond(ess < resampling_threshold * nparticles,
+                                       lambda _: (resampling(key_resample, log_ws, samples)),
+                                       lambda _: (log_ws, samples),
                                        None)
+        log_ws_, prop_samples = m_log_g(key_markov, samples, pytree)
+        log_ws = log_ws + log_ws_
 
-        prop_samples = m(key_markov, samples, pytree)
-        log_ws_ = log_ws + log_g(prop_samples, samples, pytree)
-        log_ws = log_ws_ - jax.scipy.special.logsumexp(log_ws_)
+        c_ = jax.scipy.special.logsumexp(log_ws)
+        log_ws = log_ws - c_
+        nll_ = nll_ - c_
         ess = compute_ess(log_ws)
 
-        return (prop_samples, log_ws, ess), (prop_samples, log_ws, ess) if return_path else ess
+        return (prop_samples, log_ws, nll_, ess), (prop_samples, log_ws, ess) if return_path else ess
 
     keys = jax.random.split(key_body, num=nsteps)
     if return_path:
-        _, (sampless, log_wss, esss) = jax.lax.scan(scan_body, (samples0, log_ws0, ess0), (scan_pytree, keys))
+        (_, _, nll, _), (sampless, log_wss, esss) = jax.lax.scan(scan_body,
+                                                                 (samples0, log_ws0, nll0, ess0),
+                                                                 (scan_pytree, keys))
         return leading_concat(samples0, sampless), leading_concat(log_ws0, log_wss), leading_concat(ess0, esss)
     else:
-        (samplesN, log_wsN, _), esss = jax.lax.scan(scan_body, (samples0, log_ws0, ess0), (scan_pytree, keys))
+        (samplesN, log_wsN, nll, _), esss = jax.lax.scan(scan_body,
+                                                         (samples0, log_ws0, nll0, ess0),
+                                                         (scan_pytree, keys))
         return samplesN, log_wsN, leading_concat(ess0, esss)
 
 

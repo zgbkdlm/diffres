@@ -2,7 +2,8 @@ import pytest
 import jax
 import jax.numpy as jnp
 import numpy.testing as npt
-from diffres.resampling import multinomial, stratified, systematic, diffusion_resampling
+from diffres.resampling import (multinomial, stratified, systematic,
+                                diffusion_resampling, multinomial_stopped, ensemble_ot)
 from ott.tools.sliced import sliced_wasserstein
 
 jax.config.update("jax_enable_x64", True)
@@ -22,7 +23,7 @@ log_ws = log_ws_ - jax.scipy.special.logsumexp(log_ws_)
 key_resampling, _ = jax.random.split(key)
 
 
-@pytest.mark.parametrize('r', [multinomial, stratified, systematic])
+@pytest.mark.parametrize('r', [multinomial, multinomial_stopped, stratified, systematic])
 def test_misc_resamplings(r):
     resampled_log_ws, resampled_xs = r(key_resampling, log_ws, xs)
     npt.assert_allclose(swd(resampled_xs, xs, jnp.exp(resampled_log_ws), jnp.exp(log_ws)), 0., atol=1e-4)
@@ -33,3 +34,8 @@ def test_diffres(integrator):
     ts = jnp.linspace(0., 1., 16)
     resampled_log_ws, resampled_xs = diffusion_resampling(key_resampling, log_ws, xs, -0.5, ts, integrator=integrator)
     npt.assert_allclose(swd(resampled_xs, xs, jnp.exp(resampled_log_ws), jnp.exp(log_ws)), 0., atol=1e-3)
+
+
+def test_ensemble_ot():
+    resampled_log_ws, resampled_xs = ensemble_ot(_, log_ws, xs, eps=0.1)
+    npt.assert_allclose(swd(resampled_xs, xs, jnp.exp(resampled_log_ws), jnp.exp(log_ws)), 0., atol=3e-3)

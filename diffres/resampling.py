@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden, tweedie
 from diffres.typings import JArray, JKey
-from functools import partial
+from typing import Tuple
 
 
 def _sorted_uniforms(n, key: JKey) -> JArray:
@@ -12,7 +12,8 @@ def _sorted_uniforms(n, key: JKey) -> JArray:
     return z[:-1] / z[-1]
 
 
-def _systematic_or_stratified(key: JKey, weights: JArray, is_systematic: bool) -> JArray:
+def _systematic_or_stratified(key: JKey, weights: JArray, samples: JArray,
+                              is_systematic: bool) -> Tuple[JArray, JArray]:
     n = weights.shape[0]
     if is_systematic:
         u = jax.random.uniform(key, ())
@@ -20,28 +21,33 @@ def _systematic_or_stratified(key: JKey, weights: JArray, is_systematic: bool) -
         u = jax.random.uniform(key, (n,))
     idx = jnp.searchsorted(jnp.cumsum(weights),
                            (jnp.arange(n, dtype=weights.dtype) + u) / n)
-    return jnp.clip(idx, 0, n - 1)
+    inds = jnp.clip(idx, 0, n - 1)
+    return jnp.full((n,), -jnp.log(n)), samples[inds]
 
 
-def systematic(key: JKey, weights: JArray) -> JArray:
-    return _systematic_or_stratified(key, weights, True)
+def systematic(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
+    return _systematic_or_stratified(key, jnp.exp(log_weights), samples, True)
 
 
-def stratified(key: JKey, weights: JArray) -> JArray:
-    return _systematic_or_stratified(key, weights, False)
+def stratified(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
+    return _systematic_or_stratified(key, jnp.exp(log_weights), samples, False)
 
 
-def multinomial(key: JKey, weights: JArray) -> JArray:
-    """Not tested.
-    """
+def multinomial(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
+    weights = jnp.exp(log_weights)
     n = weights.shape[0]
     idx = jnp.searchsorted(jnp.cumsum(weights),
                            _sorted_uniforms(n, key))
-    return jnp.clip(idx, 0, n - 1)
+    inds = jnp.clip(idx, 0, n - 1)
+    return jnp.full((n,), -jnp.log(n)), samples[inds]
+
+
+def multinomial_stopped():
+    pass
 
 
 def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
-                         integrator: str = 'lord_and_rougemont'):
+                         integrator: str = 'lord_and_rougemont') -> Tuple[JArray, JArray]:
     """Differentiable resampling using ensemble score.
 
     Parameters
@@ -60,6 +66,8 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         The SDE integrator.
 
     #TODO: Double-check the routine for datashape
+    #TODO: Make efficient parallel implementation
+    #TODO: Efficient grad propagation
     """
     n = log_ws.shape[0]
     data_shape = samples.shape[1:]
@@ -121,4 +129,4 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     key, _ = jax.random.split(key)
     keys = jax.random.split(key, num=nsteps)
     x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], keys))
-    return x0s
+    return jnp.full((n,), -jnp.log(n)), x0s

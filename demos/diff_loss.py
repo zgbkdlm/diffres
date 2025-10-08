@@ -14,25 +14,25 @@ d = 2
 
 def diff_resampling(key_, log_ws, xs):
     return diffusion_resampling(key_, log_ws, xs,
-                                -0.5, jnp.linspace(0., 2., 16), integrator='euler', ode=True)
+                                -0.5, jnp.linspace(0., 2., 8), integrator='euler', ode=True)
 
 
 def g(x, param):
     """param > 0"""
-    return 1 / (1. + 2 * jnp.exp(-jnp.dot(x - param, x - param)))
+    return 1 / (1. + 2 * jnp.exp(-jnp.dot(x, x)))
 
 
 def sampler(key_, param):
-    m = param ** 2 * jnp.array([jnp.sin(0.5 * math.pi * param),
-                                jnp.cos(0.5 * math.pi * param)])
-    log_pot = lambda x: jnp.sum(jax.scipy.stats.norm.logpdf(0., x, 1.), axis=-1)
+    m = jnp.array([jnp.sin(0.5 * math.pi * param),
+                   jnp.cos(0.5 * math.pi * param)])
+    log_pot = lambda x: jnp.sum(jax.scipy.stats.norm.logpdf(m ** 2, x, 1.), axis=-1)
     xs = m + jax.random.normal(key_, shape=(nsamples, d))
     log_ws = log_pot(xs)
     log_ws = log_ws - jax.scipy.special.logsumexp(log_ws)
 
     # Resampling
     key, _ = jax.random.split(key_)
-    log_ws, xs = diff_resampling(key_, log_ws, xs)
+    log_ws, xs = multinomial(key_, log_ws, xs)  # Change this to other resampling methods to compare
     return log_ws, xs
 
 
@@ -50,7 +50,9 @@ losses = jax.vmap(loss, in_axes=[None, 0])(key, params)
 grads = jax.vmap(grad, in_axes=[None, 0])(key, params)
 
 fig, axes = plt.subplots(ncols=2)
-axes[0].plot(params, losses)
-axes[1].plot(params, grads)
+axes[0].plot(params, losses, label='loss')
+axes[1].plot(params, grads, label='gradient')
+for ax in axes:
+    ax.legend()
 plt.tight_layout(pad=.1)
 plt.show()

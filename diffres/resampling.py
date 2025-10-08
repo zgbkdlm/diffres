@@ -69,7 +69,8 @@ def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None):
 
 
 def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
-                         integrator: str = 'lord_and_rougemont') -> Tuple[JArray, JArray]:
+                         integrator: str = 'euler',
+                         ode: bool = True) -> Tuple[JArray, JArray]:
     """Differentiable resampling using ensemble score.
 
     Parameters
@@ -86,6 +87,8 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         Time steps t0, t1, ..., tnsteps.
     integrator : str
         The SDE integrator.
+    ode : bool
+        If True, use the probability flow ODE.
 
     #TODO: Double-check the routine for datashape
     #TODO: Make efficient parallel implementation
@@ -123,7 +126,10 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         return jnp.einsum('i,i...->...', jnp.exp(log_alps), -(x - mts) / sig2ts)
 
     def f(x, t):
-        return a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, T - t)
+        if ode:
+            return a * mu + 0.5 * b2 * jax.vmap(s, in_axes=[0, None])(x, T - t)
+        else:
+            return a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, T - t)
 
     def drift(x, t):
         return -a * x + f(x, t)
@@ -139,11 +145,11 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         dt = tk - t_km1
         rnd = jax.random.normal(key_k, (n, *data_shape))
         if integrator == 'euler':
-            m, scale = euler_maruyama(drift, b2 ** 0.5, x, t_km1, dt)
+            m, scale = euler_maruyama(drift, 0. if ode else b2 ** 0.5, x, t_km1, dt)
         elif integrator == 'lord_and_rougemont':
-            m, scale = lord_and_rougemont(-a, f, b2 ** 0.5, x, t_km1, dt)
+            m, scale = lord_and_rougemont(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
         elif integrator == 'jentzen_and_kloeden':
-            m, scale = jentzen_and_kloeden(-a, f, b2 ** 0.5, x, t_km1, dt)
+            m, scale = jentzen_and_kloeden(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
         else:
             raise ValueError(f'Unknown integrator {integrator}.')
         return m + scale * rnd, None

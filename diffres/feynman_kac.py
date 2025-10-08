@@ -5,7 +5,7 @@ import math
 import jax
 import jax.numpy as jnp
 from diffres.tools import leading_concat
-from diffres.typings import JArray, JKey, PyTree
+from diffres.typings import JArray, JKey, PyTree, JFloat
 from typing import Callable, Tuple, Union, NamedTuple, Optional
 
 
@@ -22,9 +22,9 @@ def smc_feynman_kac(key: JKey,
                     scan_pytree: PyTree,
                     nparticles: int,
                     nsteps: int,
-                    resampling: Callable[[JKey, JArray, JArray], JArray],
+                    resampling: Callable[[JKey, JArray, JArray], Tuple[JArray, JArray]],
                     resampling_threshold: float = 1.,
-                    return_path: bool = False) -> Tuple[JArray, JArray, JArray]:
+                    return_path: bool = False) -> Tuple[JArray, JArray, JFloat, JArray]:
     r"""Sequential Monte Carlo simulation of a Feynman--Kac model.
 
     .. math::
@@ -102,12 +102,12 @@ def smc_feynman_kac(key: JKey,
         (_, _, nll, _), (sampless, log_wss, esss) = jax.lax.scan(scan_body,
                                                                  (samples0, log_ws0, nll0, ess0),
                                                                  (scan_pytree, keys))
-        return leading_concat(samples0, sampless), leading_concat(log_ws0, log_wss), leading_concat(ess0, esss)
+        return leading_concat(samples0, sampless), leading_concat(log_ws0, log_wss), nll, leading_concat(ess0, esss)
     else:
         (samplesN, log_wsN, nll, _), esss = jax.lax.scan(scan_body,
                                                          (samples0, log_ws0, nll0, ess0),
                                                          (scan_pytree, keys))
-        return samplesN, log_wsN, leading_concat(ess0, esss)
+        return samplesN, log_wsN, nll, leading_concat(ess0, esss)
 
 
 def compute_ess(log_ws: JArray) -> JArray:

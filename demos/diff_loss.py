@@ -14,7 +14,7 @@ d = 2
 
 def diff_resampling(key_, log_ws, xs):
     return diffusion_resampling(key_, log_ws, xs,
-                                -0.5, jnp.linspace(0., 1., 16), integrator='euler')
+                                -0.5, jnp.linspace(0., 2., 16), integrator='euler', ode=True)
 
 
 def g(x, param):
@@ -23,8 +23,8 @@ def g(x, param):
 
 
 def sampler(key_, param):
-    m = jnp.array([jnp.sin(0.5 * math.pi * param),
-                   jnp.cos(0.5 * math.pi * param)])
+    m = param ** 2 * jnp.array([jnp.sin(0.5 * math.pi * param),
+                                jnp.cos(0.5 * math.pi * param)])
     log_pot = lambda x: jnp.sum(jax.scipy.stats.norm.logpdf(0., x, 1.), axis=-1)
     xs = m + jax.random.normal(key_, shape=(nsamples, d))
     log_ws = log_pot(xs)
@@ -45,7 +45,7 @@ def grad(key_, param):
     return jax.grad(loss, argnums=1)(key_, param)
 
 
-params = jnp.linspace(-2., 3., 1000)
+params = jnp.linspace(-2., 3., 200)
 losses = jax.vmap(loss, in_axes=[None, 0])(key, params)
 grads = jax.vmap(grad, in_axes=[None, 0])(key, params)
 

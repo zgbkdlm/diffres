@@ -32,9 +32,11 @@ def test_misc_resamplings(r):
     npt.assert_allclose(swd(resampled_xs, xs, jnp.exp(resampled_log_ws), jnp.exp(log_ws)), 0., atol=1e-4)
 
 
-@pytest.mark.parametrize('integrator', ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden'])
+@pytest.mark.parametrize('integrator', ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden', 'diffrax'])
 @pytest.mark.parametrize('ode', [True, False])
 def test_diffres(integrator, ode):
+    if integrator == 'diffrax' and not ode:
+        pass
     ts = jnp.linspace(0., 1., 16)
     resampled_log_ws, resampled_xs = diffusion_resampling(key_resampling, log_ws, xs, -0.5, ts, integrator=integrator)
     npt.assert_allclose(swd(resampled_xs, xs, jnp.exp(resampled_log_ws), jnp.exp(log_ws)), 0., atol=1e-3)

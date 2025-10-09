@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden, tweedie
 from diffres.typings import JArray, JKey
+from diffrax import diffeqsolve, ODETerm, Dopri5, Euler
 from ott.geometry import pointcloud
 from ott.problems.linear import linear_problem
 from ott.solvers.linear import sinkhorn
@@ -247,8 +248,10 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
             m, scale = lord_and_rougemont(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
         elif integrator == 'jentzen_and_kloeden':
             m, scale = jentzen_and_kloeden(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
-        elif integrator == 'diffrax':
-            pass
+        elif integrator == 'diffrax' and ode:
+            term = ODETerm(lambda t_, x_, args: drift(x_, t_))
+            m = diffeqsolve(term, Euler(), t0=0., t1=T, dt0=T / (ts.shape[0] - 1), y0=xTs).ys[0]
+            scale = 0.
         else:
             raise ValueError(f'Unknown integrator {integrator}.')
         return m + scale * rnd, None

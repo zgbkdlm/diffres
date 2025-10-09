@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import math
-from diffres.resampling import diffusion_resampling, stratified, multinomial_stopped, multinomial
+from diffres.resampling import diffusion_resampling, stratified, multinomial_stopped, multinomial, soft_resampling
 import matplotlib.pyplot as plt
 
 jax.config.update('jax_enable_x64', True)
@@ -15,6 +15,10 @@ d = 2
 def diff_resampling(key_, log_ws, xs):
     return diffusion_resampling(key_, log_ws, xs,
                                 -0.5, jnp.linspace(0., 2., 8), integrator='euler', ode=True)
+
+
+def soft_r(key_, log_ws, xs):
+    return soft_resampling(key_, log_ws, xs, alpha=1.)
 
 
 def g(x, param):
@@ -32,7 +36,7 @@ def sampler(key_, param):
 
     # Resampling
     key, _ = jax.random.split(key_)
-    log_ws, xs = multinomial(key_, log_ws, xs)  # Change this to other resampling methods to compare
+    log_ws, xs = soft_r(key_, log_ws, xs)  # Change this to other resampling methods to compare
     return log_ws, xs
 
 

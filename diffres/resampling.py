@@ -37,11 +37,13 @@ def stratified(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray,
 
 
 def _multinomial(key: JKey, log_weights: JArray) -> JArray:
-    weights = jnp.exp(log_weights)
-    n = weights.shape[0]
-    idx = jnp.searchsorted(jnp.cumsum(weights),
-                           _sorted_uniforms(n, key))
-    return jnp.clip(idx, 0, n - 1)
+    # weights = jnp.exp(log_weights)
+    # n = weights.shape[0]
+    # idx = jnp.searchsorted(jnp.cumsum(weights),
+    #                        _sorted_uniforms(n, key))
+    # return jnp.clip(idx, 0, n - 1)
+    n = log_weights.shape[0]
+    return jax.random.choice(key, n, shape=(n,), replace=True, p=jnp.exp(log_weights))
 
 
 def multinomial(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
@@ -56,7 +58,30 @@ def multinomial_stopped(key: JKey, log_weights: JArray, samples: JArray) -> Tupl
     return jnp.full((n,), -jnp.log(n)) + log_weights[inds] - jax.lax.stop_gradient(log_weights[inds]), samples[inds]
 
 
-def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None):
+def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None) -> Tuple[JArray, JArray]:
+    """Entropic OT resampling.
+
+    Parameters
+    ----------
+    key : JKey
+        A JAX random key.
+    log_ws : JArray (n, )
+        Log weights.
+    samples : JArray (n, d)
+        Particles.
+    eps : float
+        Entropic regularization parameter. If None, set to 1 / log(n).
+
+    Returns
+    -------
+    (n, ), (n, d)
+        New log weights and particles.
+
+    References
+    ----------
+    Adrien Corenflos, James Thornton, George Deligiannidis, Arnaud Doucet.
+    Proceedings of the 38th International Conference on Machine Learning, PMLR 139:2100-2111, 2021.
+    """
     n = log_ws.shape[0]
     if eps is None:
         eps = 1 / jnp.log(n)
@@ -66,6 +91,73 @@ def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None):
     solver = sinkhorn.Sinkhorn()
     out = solver(prob)
     return jnp.full((n,), -jnp.log(n)), out.matrix @ samples * n
+
+
+def soft_resampling(key: JKey, log_ws, samples: JArray, alpha: float) -> Tuple[JArray, JArray]:
+    """Soft resampling.
+
+    Parameters
+    ----------
+    key : JKey
+        A JAX random key.
+    log_ws : JArray (n, )
+        Log weights.
+    samples : JArray (n, ...)
+        Particles.
+    alpha : float
+        The softening parameter, must be in [0, 1]. alpha = 1 means no softening.
+
+    Returns
+    -------
+    (n, ), (n, d)
+        New log weights and particles.
+
+    References
+    ----------
+    Karkus, P., Hsu, D., & Lee, W. S. (2018).
+    Particle filter networks with application to visual localization. In Conference on Robot Learning.
+    """
+    n = log_ws.shape[0]
+    log_ws_q = jnp.concatenate([log_ws[:, None], jnp.full((n, 1), jnp.log((1 - alpha) / n))], axis=-1)
+    log_ws_q = jax.scipy.special.logsumexp(log_ws_q, axis=-1)
+    inds = _multinomial(key, log_ws_q)
+    log_ws_post = log_ws - log_ws_q
+    return log_ws_post - jax.scipy.special.logsumexp(log_ws_post), samples[inds]
+
+
+def gumbel_softmax(key: JKey, log_ws, samples: JArray, tau: float) -> Tuple[JArray, JArray]:
+    """Gumbel-softmax resampling.
+
+    Parameters
+    ----------
+    key : JKey
+        A JAX random key.
+    log_ws : JArray (n, )
+        Log weights.
+    samples : JArray (n, ...)
+        Particles.
+    tau : float
+        The temperature parameter, must be positive. Approaching -> 0 means multinomial resampling.
+
+    Returns
+    -------
+    (n, ), (n, d)
+        New log weights and particles.
+
+    References
+    ----------
+    Jang, Eric, Shixiang Gu, and Ben Poole.
+    Categorical Reparametrization with Gumble-Softmax. ICLR 2017.
+    """
+    n = log_ws.shape[0]
+
+    def one_sample(key_):
+        us = jax.random.uniform(key_, minval=0., maxval=1., shape=(n,))
+        gs = -jnp.log(-jnp.log(us))
+        return jax.nn.softmax((gs + log_ws) / tau) @ samples
+
+    keys = jax.random.split(key, num=n)
+    return jnp.full((n,), -jnp.log(n)), jax.vmap(one_sample)(keys)
 
 
 def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
@@ -89,6 +181,11 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         The SDE integrator.
     ode : bool
         If True, use the probability flow ODE.
+
+    Returns
+    -------
+    (n, ), (n, d)
+        New log weights and particles.
 
     #TODO: Double-check the routine for datashape
     #TODO: Make efficient parallel implementation
@@ -150,6 +247,8 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
             m, scale = lord_and_rougemont(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
         elif integrator == 'jentzen_and_kloeden':
             m, scale = jentzen_and_kloeden(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
+        elif integrator == 'diffrax':
+            pass
         else:
             raise ValueError(f'Unknown integrator {integrator}.')
         return m + scale * rnd, None

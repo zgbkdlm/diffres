@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from diffres.resampling import diffusion_resampling, stratified, ensemble_ot
+from diffres.resampling import diffusion_resampling, stratified, ensemble_ot, gumbel_softmax
 import matplotlib.pyplot as plt
 
 jax.config.update('jax_enable_x64', True)
@@ -28,7 +28,8 @@ ts = jnp.linspace(0, 1., 10)
 _, ys = diffusion_resampling(key, log_post_ws, xs, -0.5, ts, integrator='lord_and_rougemont')
 
 # OT
-_, ys_ot = ensemble_ot(_, log_post_ws, xs, eps=0.2)
+# _, ys_ot = ensemble_ot(_, log_post_ws, xs, eps=0.2)
+_, ys_ot = gumbel_softmax(key, log_post_ws, xs, tau=0.1)
 
 # plt.hist(xs[:, 0], bins=64, density=True, alpha=.1, label='Prior')
 plt.hist(xs[:, 0], weights=post_ws, bins=100, density=True, color='black', alpha=.1, label='Posterior')

@@ -25,8 +25,8 @@ key = jnp.asarray(np.load('rnd_keys.npy'))[args.mc_id]
 
 # Metric
 @jax.jit
-def swd(samples1, samples2, a=None, b=None):
-    return sliced_wasserstein(samples1, samples2, a, b, n_proj=1000)[0]
+def swd(samples1, samples2, wx=None, wy=None):
+    return sliced_wasserstein(samples1, samples2, wx, wy, n_proj=1000)[0]
 
 
 # Generate data
@@ -62,7 +62,7 @@ post_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, 
 # Importance REsampling
 @partial(jax.vmap, in_axes=[0])
 def logpdf_likelihood(x):
-    return jnp.sum(jax.scipy.stats.norm.logpdf(y, obs_op @ x, obs_cov ** 0.5))
+    return jnp.sum(jax.scipy.stats.norm.logpdf(y, obs_op @ x, jnp.diag(obs_cov) ** 0.5))
 
 
 log_ws = logpdf_likelihood(prior_samples)
@@ -97,6 +97,7 @@ time = timeit.timeit(pseudo_f, number=3)
 err = swd(post_samples, approx_post_samples)
 
 # Save result
+print(f'{args.method} (id={args.mc_id}) has err {err} and time {time}.')
 np.savez(f'./gms/results/{args.method}-{args.mc_id}.npz',
          post_samples=post_samples, approx_post_log_ws=approx_post_log_ws, approx_post_samples=approx_post_samples,
          time=time, err=err)

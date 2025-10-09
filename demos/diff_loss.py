@@ -36,7 +36,7 @@ def sampler(key_, param):
 
     # Resampling
     key, _ = jax.random.split(key_)
-    log_ws, xs = soft_r(key_, log_ws, xs)  # Change this to other resampling methods to compare
+    log_ws, xs = multinomial_stopped(key_, log_ws, xs)  # Change this to other resampling methods to compare
     return log_ws, xs
 
 

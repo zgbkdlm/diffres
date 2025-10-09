@@ -54,6 +54,22 @@ def multinomial(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray
 
 
 def multinomial_stopped(key: JKey, log_weights: JArray, samples: JArray) -> Tuple[JArray, JArray]:
+    """Stopped-gradient multinomial resampling.
+
+    Parameters
+    ----------
+    key
+    log_weights
+    samples
+
+    Returns
+    -------
+
+    References
+    ----------
+    Differentiable Particle Filtering without Modifying the Forward Pass
+
+    """
     n = log_weights.shape[0]
     inds = _multinomial(key, jax.lax.stop_gradient(log_weights))
     return jnp.full((n,), -jnp.log(n)) + log_weights[inds] - jax.lax.stop_gradient(log_weights[inds]), samples[inds]

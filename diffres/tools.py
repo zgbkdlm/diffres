@@ -202,6 +202,21 @@ def sampling_gm(key: JKey, ws: Array, ms: Array, eigvals: Array, eigvecs: Array)
     return ms[ind] + eigvecs[ind] @ (eigvals[ind] ** 0.5 * jax.random.normal(key_nor, (d,)))
 
 
+def gm_lin_posterior(y, obs_op, obs_cov, ws, ms, covs):
+    """Compute the posterior distribution of a Gaussian mixture with linear Gaussian likelihood.
+    """
+
+    def single_posterior(w, m, cov):
+        g = obs_op @ cov @ obs_op.T + obs_cov
+        chol = jax.scipy.linalg.cho_factor(g)
+        return (jnp.log(w) + jax.scipy.stats.multivariate_normal.logpdf(y, obs_op @ m, g),
+                m + cov @ obs_op.T @ jax.scipy.linalg.cho_solve(chol, y - obs_op @ m),
+                cov - cov @ obs_op.T @ jax.scipy.linalg.cho_solve(chol, obs_op @ cov))
+
+    log_ws_, posterior_ms, posterior_covs = jax.vmap(single_posterior, in_axes=[0, 0, 0])(ws, ms, covs)
+    return jnp.exp(log_ws_ - jax.scipy.special.logsumexp(log_ws_)), posterior_ms, posterior_covs
+
+
 def make_gm_bridge(ws0, ms0, eigvals0, eigvecs0, a, b, t0, T, fwd_denoising: bool = False):
     """Make a diffusion bridge between two Gaussian mixtures.
     """

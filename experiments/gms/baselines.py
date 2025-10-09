@@ -1,0 +1,102 @@
+import argparse
+import timeit
+import jax
+import jax.numpy as jnp
+import numpy as np
+from diffres.resampling import multinomial, stratified, systematic, diffusion_resampling, soft_resampling, \
+    gumbel_softmax, ensemble_ot
+from diffres.tools import sampling_gm, gm_lin_posterior
+from ott.tools.sliced import sliced_wasserstein
+from functools import partial
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--mc_id', type=int, default=0, help='The MC run starting index.')
+parser.add_argument('--dx', type=int, default=8, help='The x dimension.')
+parser.add_argument('--dy', type=int, default=1, help='The y dimension.')
+parser.add_argument('--c', type=int, default=5, help='The number of GM components.')
+parser.add_argument('--offset', type=float, default=0., help='The offset that makes the observation an outlier.')
+parser.add_argument('--nsamples', type=int, default=10_000, help='Number of samples.')
+parser.add_argument('--method', type=str, default='multinomial', help='The resampling methods.')
+args = parser.parse_args()
+
+jax.config.update("jax_enable_x64", True)
+key = jnp.asarray(np.load('rnd_keys.npy'))[args.mc_id]
+
+
+# Metric
+@jax.jit
+def swd(samples1, samples2, a=None, b=None):
+    return sliced_wasserstein(samples1, samples2, a, b, n_proj=1000)[0]
+
+
+# Generate data
+nsamples = args.nsamples
+c = args.c
+d = args.dx
+dy = args.dy
+vs = jnp.ones(c) / c  # GM weights
+ms = jax.random.uniform(key, minval=-5, maxval=5., shape=(c, d))
+key, _ = jax.random.split(key)
+_covs = jax.random.normal(key, shape=(c, d))
+covs = jnp.einsum('...i,...j->...ij', _covs, _covs) + jnp.eye(d) * 1.
+eigvals, eigvecs = jnp.linalg.eigh(covs)
+
+key, _ = jax.random.split(key)
+keys = jax.random.split(key, nsamples)
+prior_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, vs, ms, eigvals, eigvecs)
+
+# True posterior
+key, _ = jax.random.split(key)
+keys = jax.random.split(key, nsamples)
+obs_op = jnp.ones((dy, d))
+obs_cov = jnp.eye(dy)
+y_likely = jnp.einsum('ij,kj,k->i', obs_op, ms, vs)
+
+y = y_likely
+post_vs, post_ms, post_covs = gm_lin_posterior(y, obs_op, obs_cov, vs, ms, covs)
+post_eigvals, post_eigvecs = jnp.linalg.eigh(post_covs)
+post_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, post_vs, post_ms, post_eigvals,
+                                                                          post_eigvecs)
+
+
+# Importance REsampling
+@partial(jax.vmap, in_axes=[0])
+def logpdf_likelihood(x):
+    return jnp.sum(jax.scipy.stats.norm.logpdf(y, obs_op @ x, obs_cov ** 0.5))
+
+
+log_ws = logpdf_likelihood(prior_samples)
+log_ws = log_ws - jax.scipy.special.logsumexp(log_ws)
+ws = jnp.exp(log_ws)
+
+# Resampling starts
+key, _ = jax.random.split(key)
+
+
+@jax.jit
+def resampling():
+    if args.method == 'multinomial':
+        lws, xs = multinomial(key, log_ws, prior_samples)
+    elif args.method == 'stratified':
+        lws, xs = stratified(key, log_ws, prior_samples)
+    elif args.method == 'systematic':
+        lws, xs = systematic(key, log_ws, prior_samples)
+    else:
+        raise ValueError(f'Unknown resampling method: {args.method}.')
+    return lws, xs
+
+
+# Trigger jit and get results
+approx_post_log_ws, approx_post_samples = resampling()
+
+# Timeit
+pseudo_f = lambda: resampling()[1].block_until_ready()
+time = timeit.timeit(pseudo_f, number=3)
+
+# Compute error
+err = swd(post_samples, approx_post_samples)
+
+# Save result
+np.savez(f'./gms/results/{args.method}-{args.mc_id}.npz',
+         post_samples=post_samples, approx_post_log_ws=approx_post_log_ws, approx_post_samples=approx_post_samples,
+         time=time, err=err)

@@ -46,7 +46,8 @@ eigvals, eigvecs = jnp.linalg.eigh(covs)
 
 key, _ = jax.random.split(key)
 keys = jax.random.split(key, nsamples)
-prior_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, vs, ms, eigvals, eigvecs, covs)
+sampler_gm = jax.jit(jax.vmap(sampling_gm, in_axes=[0, None, None, None, None, None]))
+prior_samples = sampler_gm(keys, vs, ms, eigvals, eigvecs, covs)
 
 # True posterior
 key, _ = jax.random.split(key)
@@ -58,8 +59,7 @@ y_likely = jnp.einsum('ij,kj,k->i', obs_op, ms, vs)
 y = y_likely
 post_vs, post_ms, post_covs = gm_lin_posterior(y, obs_op, obs_cov, vs, ms, covs)
 post_eigvals, post_eigvecs = jnp.linalg.eigh(post_covs)
-post_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, post_vs, post_ms, post_eigvals,
-                                                                          post_eigvecs, post_covs)
+post_samples = sampler_gm(keys, post_vs, post_ms, post_eigvals, post_eigvecs, post_covs)
 
 
 # Importance REsampling

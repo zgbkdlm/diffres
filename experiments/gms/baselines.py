@@ -91,13 +91,14 @@ approx_post_log_ws, approx_post_samples = resampling()
 
 # Timeit
 pseudo_f = lambda: resampling()[1].block_until_ready()
-time = timeit.timeit(pseudo_f, number=3)
+time = timeit.timeit(pseudo_f, number=1)
 
 # Compute error
 err = swd(post_samples, approx_post_samples)
 
 # Save result
 print(f'{args.method} (id={args.mc_id}) has err {err} and time {time}.')
-np.savez(f'./gms/results/{args.method}-{args.mc_id}.npz',
-         post_samples=post_samples, approx_post_log_ws=approx_post_log_ws, approx_post_samples=approx_post_samples,
-         time=time, err=err)
+np.savez_compressed(f'./gms/results/{args.method}-{args.mc_id}.npz',
+                    post_samples=post_samples, approx_post_log_ws=approx_post_log_ws,
+                    approx_post_samples=approx_post_samples,
+                    time=time, err=err)

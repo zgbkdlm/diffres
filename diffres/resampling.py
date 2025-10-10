@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden, tweedie
 from diffres.typings import JArray, JKey
-from diffrax import diffeqsolve, ODETerm, Dopri5, Euler
+from diffrax import diffeqsolve, ODETerm, Euler
 from ott.geometry import pointcloud
 from ott.problems.linear import linear_problem
 from ott.solvers.linear import sinkhorn

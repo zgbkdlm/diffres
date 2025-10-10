@@ -72,13 +72,13 @@ plt.scatter(post_samples[:, 0], post_samples[:, 1], s=1, alpha=0.3)
 plt.scatter(approx_post_diffusion[:, 0], approx_post_diffusion[:, 1], s=1, alpha=0.3)
 plt.show()
 
-# Soft
-approx_log_post_ws, approx_post_soft = soft_resampling(key, log_ws, prior_samples, alpha=0.8)
-print(swd(post_samples, approx_post_soft, b=jnp.exp(approx_log_post_ws)))
-
-plt.scatter(post_samples[:, 0], post_samples[:, 1], s=1, alpha=0.3)
-plt.scatter(approx_post_soft[:, 0], approx_post_soft[:, 1], s=1, alpha=0.3)
-plt.show()
+# # Soft
+# approx_log_post_ws, approx_post_soft = soft_resampling(key, log_ws, prior_samples, alpha=0.8)
+# print(swd(post_samples, approx_post_soft, b=jnp.exp(approx_log_post_ws)))
+#
+# plt.scatter(post_samples[:, 0], post_samples[:, 1], s=1, alpha=0.3)
+# plt.scatter(approx_post_soft[:, 0], approx_post_soft[:, 1], s=1, alpha=0.3)
+# plt.show()
 #
 # # Gumbel
 # _, approx_post_gumbel = gumbel_softmax(key, log_ws, prior_samples, tau=1e-2)

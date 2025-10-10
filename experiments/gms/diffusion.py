@@ -1,5 +1,4 @@
 import argparse
-import timeit
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -47,7 +46,7 @@ eigvals, eigvecs = jnp.linalg.eigh(covs)
 
 key, _ = jax.random.split(key)
 keys = jax.random.split(key, nsamples)
-prior_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, vs, ms, eigvals, eigvecs)
+prior_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, vs, ms, eigvals, eigvecs, covs)
 
 # True posterior
 key, _ = jax.random.split(key)
@@ -60,7 +59,7 @@ y = y_likely
 post_vs, post_ms, post_covs = gm_lin_posterior(y, obs_op, obs_cov, vs, ms, covs)
 post_eigvals, post_eigvecs = jnp.linalg.eigh(post_covs)
 post_samples = jax.vmap(sampling_gm, in_axes=[0, None, None, None, None])(keys, post_vs, post_ms, post_eigvals,
-                                                                          post_eigvecs)
+                                                                          post_eigvecs, post_covs)
 
 
 # Importance REsampling
@@ -92,17 +91,12 @@ def resampling():
 # Trigger jit and get results
 approx_post_log_ws, approx_post_samples = resampling()
 
-# Timeit
-pseudo_f = lambda: resampling()[1].block_until_ready()
-time = timeit.timeit(pseudo_f, number=1)
-
 # Compute error
 err = swd(post_samples, approx_post_samples)
 
 # Save result
 print(f'diffres (id={args.mc_id}) with a={a} | T={T} | nsteps={nsteps} | {integrator} {"| ode" if ode else "| sde"} '
-      f'has err {err} and time {time}.')
+      f'has err {err}.')
 np.savez_compressed(f'./gms/results/diffres-{a}-{T}-{nsteps}-{integrator}-{"ode" if ode else "sde"}-{args.mc_id}.npz',
                     post_samples=post_samples, approx_post_log_ws=approx_post_log_ws,
-                    approx_post_samples=approx_post_samples,
-                    time=time, err=err)
+                    approx_post_samples=approx_post_samples, err=err)

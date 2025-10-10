@@ -174,7 +174,7 @@ def reverse_simulator(key: JKey, u0: JArray, ts: JArray,
         raise NotImplementedError(f'Integrator {integrator} not implemented.')
 
 
-def sampling_gm(key: JKey, ws: Array, ms: Array, eigvals: Array, eigvecs: Array) -> JArray:
+def sampling_gm(key: JKey, ws: Array, ms: Array, eigvals: Array, eigvecs: Array, covs=None) -> JArray:
     """Sampling a Gaussian mixture distribution.
 
     Parameters
@@ -189,6 +189,10 @@ def sampling_gm(key: JKey, ws: Array, ms: Array, eigvals: Array, eigvecs: Array)
         The eigenvalues of the covariance matrices.
     eigvecs : Array (n, d, d)
         The eigenvectors of the covariance matrices.
+    covs : Array (n, d, d), optional
+        The covariance matrices.
+        If given, then the eigendecomposition is ignored.
+        Use this if you get inconsistent eigendecomposition in different machines.
 
     Returns
     -------
@@ -199,7 +203,10 @@ def sampling_gm(key: JKey, ws: Array, ms: Array, eigvals: Array, eigvecs: Array)
     key_cat, key_nor = jax.random.split(key)
 
     ind = jax.random.choice(key_cat, n, p=ws)
-    return ms[ind] + eigvecs[ind] @ (eigvals[ind] ** 0.5 * jax.random.normal(key_nor, (d,)))
+    if covs is None:
+        return ms[ind] + eigvecs[ind] @ (eigvals[ind] ** 0.5 * jax.random.normal(key_nor, (d,)))
+    else:
+        return ms[ind] + jnp.linalg.cholesky(covs[ind]) @ jax.random.normal(key_nor, (d,))
 
 
 def gm_lin_posterior(y, obs_op, obs_cov, ws, ms, covs):

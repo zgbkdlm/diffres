@@ -1,8 +1,6 @@
 #!/bin/bash
 
-
 mkdir -p ./gms/results
-
 
 for mc_id in {0..99};
 do
@@ -18,5 +16,4 @@ do
   python ./gms/diffusion.py --mc_id=$mc_id --a=-0.5 --T=3. --nsteps=64 --integrator='euler'
   python ./gms/ot.py --mc_id=$mc_id --eps=0.2
   python ./gms/ot.py --mc_id=$mc_id --eps=0.8
-  python ./gms/ot.py --mc_id=$mc_id --eps=1.
 done

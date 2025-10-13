@@ -1,5 +1,8 @@
 #!/bin/bash
 
+XLA_PYTHON_CLIENT_PREALLOCATE=false
+XLA_PYTHON_CLIENT_MEM_FRACTION=.10
+
 mkdir -p ./gms/results
 
 # Reference methods

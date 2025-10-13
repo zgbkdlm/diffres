@@ -97,7 +97,7 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
     err = swd(post_samples, approx_post_samples)
 
     # Save result
-    print(f'{args.method} (id={args.mc_id}) has err {err}.')
+    print(f'{args.method} (id={mc_id}) has err {err}.')
     np.savez_compressed(f'./gms/results/{args.method}-{mc_id}.npz',
                         post_samples=post_samples, approx_post_log_ws=approx_post_log_ws,
                         approx_post_samples=approx_post_samples, err=err)

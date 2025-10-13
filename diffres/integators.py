@@ -108,4 +108,8 @@ def jentzen_and_kloeden(a: FloatScalar,
 def tweedie(semigroup, trans_var, score, mu, x, t):
     """Not tested.
     """
-    return (x - (1 - semigroup) * mu + trans_var * score(x, t)) / semigroup
+    return (x - (1 - semigroup) * mu + trans_var * score(x, t)) / semigroup, trans_var ** 0.5
+
+
+def tme2():
+    pass

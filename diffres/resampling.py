@@ -189,7 +189,7 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     log_ws : JArray (n, )
         Weights.
     samples : JArray (n, ...)
-        Particles.
+        Particles of leading size n and arbitrary data shape.
     a : float
         The forward noising parameter, must be negative.
     ts : JArray (nsteps + 1, )
@@ -204,7 +204,6 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     (n, ), (n, d)
         New log weights and particles.
 
-    #TODO: Double-check the routine for datashape
     #TODO: Make efficient parallel implementation
     #TODO: Efficient grad propagation
     """
@@ -212,32 +211,33 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     data_shape = samples.shape[1:]
     nsteps = ts.shape[0] - 1
     ws = jnp.exp(log_ws)
-    mu = jnp.einsum('i,i...->...', ws, samples)
-    stat_vars = jnp.einsum('i,i...->...', ws, (samples - mu) ** 2)
+    # mu = jnp.einsum('i,i...->...', ws, samples)
+    mu = jnp.sum(ws[:, None] * samples.reshape(n, -1), axis=0).reshape(*data_shape)
+    # stat_vars = jnp.einsum('i,i...->...', ws, (samples - mu) ** 2)
+    stat_vars = jnp.sum(ws[:, None] * ((samples - mu) ** 2).reshape(n, -1), axis=0).reshape(*data_shape)
     b2 = -stat_vars / (2 * a)
-    T = ts[-1]
+    t0, T = ts[0], ts[-1]
 
-    def fwd_coeffs(x0, t):
-        """
-        x0 : (n, ...)
-        """
-        semigroup = jnp.exp(a * t)
-        mt = x0 * semigroup + mu * (1 - semigroup)
-        sig2t = stat_vars * (1 - semigroup ** 2)
-        return mt, sig2t
+    def fwd_coeffs(t, s_):
+        delta = t - s_
+        semigroup = jnp.exp(a * delta)
+        sig2t = stat_vars * (1 - jnp.exp(2 * a * delta))
+        return semigroup, sig2t
 
     def logpdf_trans(x, mts, sig2ts):
         """(...,), (n, ...), (n, ...) -> (n, )"""
         return jnp.sum(jax.scipy.stats.norm.logpdf(x, mts, sig2ts ** 0.5).reshape(n, -1), axis=-1)
 
     def s(x, t):
-        """
+        """Ensemble score
         (..., ), () -> (..., )
         """
-        mts, sig2ts = fwd_coeffs(samples, t)  # (n, ...), (n, ...)
+        sg, sig2ts = fwd_coeffs(t, t0)
+        mts = samples * sg + mu * (1 - sg)  # (n, ...)
         log_alps = log_ws + logpdf_trans(x, mts, sig2ts)  # (n, )
         log_alps = log_alps - jax.scipy.special.logsumexp(log_alps)
-        return jnp.einsum('i,i...->...', jnp.exp(log_alps), -(x - mts) / sig2ts)
+        # return jnp.einsum('i,i...->...', jnp.exp(log_alps), -(x - mts) / sig2ts)  # I'm surprised that this is slower
+        return jnp.sum(jnp.exp(log_alps)[:, None] * (-(x - mts) / sig2ts).reshape(n, -1), axis=0).reshape(*data_shape)
 
     def f(x, t):
         if ode:
@@ -254,10 +254,9 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
 
     def scan_body(carry, elem):
         x = carry
-        t_km1, tk, key_k = elem
+        t_km1, tk, rnd = elem
 
         dt = tk - t_km1
-        rnd = jax.random.normal(key_k, (n, *data_shape))
         if integrator == 'euler':
             m, scale = euler_maruyama(drift, 0. if ode else b2 ** 0.5, x, t_km1, dt)
         elif integrator == 'lord_and_rougemont':
@@ -268,11 +267,14 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
             term = ODETerm(lambda t_, x_, args: drift(x_, t_))
             m = diffeqsolve(term, Euler(), t0=0., t1=T, dt0=T / (ts.shape[0] - 1), y0=xTs).ys[0]
             scale = 0.
+        elif integrator == 'tweedie' and not ode:
+            sg, trans_vars = fwd_coeffs(tk, t_km1)
+            m, scale = tweedie(sg, trans_vars, jax.vmap(s, in_axes=[0, None]), mu, x, T - t_km1)
         else:
             raise ValueError(f'Unknown integrator {integrator}.')
         return m + scale * rnd, None
 
     key, _ = jax.random.split(key)
-    keys = jax.random.split(key, num=nsteps)
-    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], keys))
+    rnds = jax.random.normal(key, (nsteps, n, *data_shape))
+    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], rnds))
     return jnp.full((n,), -jnp.log(n)), x0s

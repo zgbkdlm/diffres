@@ -37,8 +37,11 @@ def test_misc_resamplings(r):
 def test_diffres(integrator, ode):
     if integrator == 'diffrax' and not ode:
         pass
+    if integrator == 'tweedie' and ode:
+        pass
     ts = jnp.linspace(0., 1., 16)
-    resampled_log_ws, resampled_xs = diffusion_resampling(key_resampling, log_ws, xs, -0.5, ts, integrator=integrator)
+    resampled_log_ws, resampled_xs = diffusion_resampling(key_resampling, log_ws, xs, -0.5, ts,
+                                                          integrator=integrator, ode=ode)
     npt.assert_allclose(swd(resampled_xs, xs, jnp.exp(resampled_log_ws), jnp.exp(log_ws)), 0., atol=1e-3)
 
 

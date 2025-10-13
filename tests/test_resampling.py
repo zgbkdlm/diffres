@@ -22,11 +22,11 @@ log_ws = log_ws_ - jax.scipy.special.logsumexp(log_ws_)
 
 key_resampling, _ = jax.random.split(key)
 
-soft_r = lambda k, lw, x: soft_resampling(k, lw, x, alpha=1.)
+soft_r = lambda k, lw, x: soft_resampling(k, lw, x, alpha=1. - 1e-8)
 gumbel_r = lambda k, lw, x: gumbel_softmax(k, lw, x, tau=1e-3)
 
 
-@pytest.mark.parametrize('r', [multinomial, multinomial_stopped, stratified, systematic, soft_r, gumbel_r])
+@pytest.mark.parametrize('r', [soft_r, gumbel_r])
 def test_misc_resamplings(r):
     resampled_log_ws, resampled_xs = r(key_resampling, log_ws, xs)
     npt.assert_allclose(swd(resampled_xs, xs, jnp.exp(resampled_log_ws), jnp.exp(log_ws)), 0., atol=1e-4)

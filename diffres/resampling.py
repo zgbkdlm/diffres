@@ -135,8 +135,10 @@ def soft_resampling(key: JKey, log_ws, samples: JArray, alpha: float) -> Tuple[J
     Particle filter networks with application to visual localization. In Conference on Robot Learning.
     """
     n = log_ws.shape[0]
-    log_ws_q = jnp.concatenate([log_ws[:, None], jnp.full((n, 1), jnp.log((1 - alpha) / n))], axis=-1)
-    log_ws_q = jax.scipy.special.logsumexp(log_ws_q, axis=-1)
+    # log_ws_q = jnp.concatenate([log_ws[:, None] + jnp.log(alpha), jnp.full((n, 1), jnp.log((1 - alpha) / n))], axis=-1)
+    # log_ws_q = jax.scipy.special.logsumexp(log_ws_q, axis=-1)
+    vp = jax.vmap(lambda z: jnp.array([jnp.log(alpha) + z, jnp.log(1 - alpha) - jnp.log(n)]), in_axes=[0])
+    log_ws_q = jax.scipy.special.logsumexp(vp(log_ws), axis=-1)
     inds = _multinomial(key, log_ws_q)
     log_ws_post = log_ws - log_ws_q
     return log_ws_post - jax.scipy.special.logsumexp(log_ws_post), samples[inds]

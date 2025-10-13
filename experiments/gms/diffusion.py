@@ -48,11 +48,11 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
     key, _ = jax.random.split(key)
     _covs = jax.random.normal(key, shape=(c, d))
     covs = jnp.einsum('...i,...j->...ij', _covs, _covs) + jnp.eye(d) * 1.
-    eigvals, eigvecs = jnp.linalg.eigh(covs)
+    # eigvals, eigvecs = jnp.linalg.eigh(covs)
 
     key, _ = jax.random.split(key)
     keys = jax.random.split(key, nsamples)
-    prior_samples = sampler_gm(keys, vs, ms, eigvals, eigvecs, covs)
+    prior_samples = sampler_gm(keys, vs, ms, _, _, covs)
 
     # True posterior
     key, _ = jax.random.split(key)
@@ -63,8 +63,8 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
 
     y = y_likely
     post_vs, post_ms, post_covs = gm_lin_posterior(y, obs_op, obs_cov, vs, ms, covs)
-    post_eigvals, post_eigvecs = jnp.linalg.eigh(post_covs)
-    post_samples = sampler_gm(keys, post_vs, post_ms, post_eigvals, post_eigvecs, post_covs)
+    # post_eigvals, post_eigvecs = jnp.linalg.eigh(post_covs)
+    post_samples = sampler_gm(keys, post_vs, post_ms, _, _, post_covs)
 
 
     # Importance REsampling

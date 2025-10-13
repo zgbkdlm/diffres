@@ -2,10 +2,9 @@ import pytest
 import jax
 import jax.numpy as jnp
 import numpy.testing as npt
-import matplotlib.pyplot as plt
 from ott.tools.sliced import sliced_wasserstein
 from diffres.tools import make_gm_bridge, sampling_gm
-from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden
+from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden, tweedie
 from functools import partial
 
 jax.config.update("jax_enable_x64", True)
@@ -88,6 +87,17 @@ def body_jentzen(carry, elem):
     return m_ + scale_ * rnd, None
 
 
+def body_tweedie(carry, elem):
+    x = carry
+    t_km1, tk, rnd = elem
+
+    dt = tk - t_km1
+    sg = jnp.exp(a * dt)
+    trans_var = b ** 2 / (2 * a) * (jnp.exp(2 * a * dt) - 1)
+    m_, scale_ = tweedie(sg, trans_var, score, 0., x, T - t_km1)
+    return m_ + scale_ * rnd, None
+
+
 @jax.jit
 @partial(jax.vmap, in_axes=[0, 0])
 def sampler_euler(key_, x_ref):
@@ -109,17 +119,27 @@ def sampler_jentzen(key_, x_ref):
     return jax.lax.scan(body_jentzen, x_ref, (ts[:-1], ts[1:], rnds))[0]
 
 
+@jax.jit
+@partial(jax.vmap, in_axes=[0, 0])
+def sampler_tweedie(key_, x_ref):
+    rnds = jax.random.normal(key_, shape=(nsteps, d))
+    return jax.lax.scan(body_tweedie, x_ref, (ts[:-1], ts[1:], rnds))[0]
+
+
 def test_integrators():
     key = jax.random.PRNGKey(999)
     keys = jax.random.split(key, num=nsamples)
     x0s_euler = sampler_euler(keys, xTs)
     x0s_lord = sampler_lord(keys, xTs)
     x0s_jentzen = sampler_jentzen(keys, xTs)
+    x0s_tweedie = sampler_tweedie(keys, xTs)
 
     err_euler = swd(x0s, x0s_euler)
     err_lord = swd(x0s, x0s_lord)
     err_jentzen = swd(x0s, x0s_jentzen)
+    err_tweedie = swd(x0s, x0s_tweedie)
 
     npt.assert_allclose(err_euler, 0., atol=3e-2)
     npt.assert_allclose(err_lord, 0., atol=2e-2)
     npt.assert_allclose(err_jentzen, 0., atol=2e-2)
+    npt.assert_allclose(err_tweedie, 0., atol=3e-2)

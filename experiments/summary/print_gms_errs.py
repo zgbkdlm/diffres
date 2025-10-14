@@ -6,9 +6,9 @@ import numpy as np
 # Print for diffusion
 a = [-0.5, ]
 Ts = [3., 4., 5.]
-nstepss = [8, 32, 64, 128]
-integrators = ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden']
-types = ['ode', ]
+nstepss = [8, 32, 128]
+integrators = ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden', 'tweedie']
+types = ['ode', 'sde']
 num_mcs = 100
 
 for comb in list(itertools.product(a, Ts, nstepss, integrators, types)):

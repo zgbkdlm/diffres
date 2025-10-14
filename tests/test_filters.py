@@ -56,26 +56,26 @@ def test_kf():
 nparticles = 1000
 
 
-def m0_sampler(key_):
+def m0_sampler(key_, _):
     rnds = jax.random.normal(key_, shape=(nparticles, dx))
     return m0 + rnds @ jnp.linalg.cholesky(v0).T
 
 
-def log_g0(samples):
-    return jnp.sum(jax.scipy.stats.norm.logpdf(ys[0], samples @ obs_op.T, xi), axis=-1)
+def log_g0(samples, y0):
+    return jnp.sum(jax.scipy.stats.norm.logpdf(y0, samples @ obs_op.T, xi ** 0.5), axis=-1)
 
 
 def m_log_g(key_, samples, pytree):
     y = pytree
     rnds = jax.random.normal(key_, shape=(nparticles, dx))
     prop_samples = samples @ semigroup.T + rnds @ (trans_cov ** 0.5).T
-    log_potentials = jnp.sum(jax.scipy.stats.norm.logpdf(y, prop_samples @ obs_op.T, xi), axis=-1)
+    log_potentials = jnp.sum(jax.scipy.stats.norm.logpdf(y, prop_samples @ obs_op.T, xi ** 0.5), axis=-1)
     return log_potentials, prop_samples
 
 
 @pytest.mark.parametrize('r', [multinomial, multinomial_stopped, stratified, systematic])
 def test_smc(r):
-    _, _, nll_pf, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_log_g, ys[1:], nparticles, nsteps,
+    _, _, nll_pf, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_log_g, ys, nparticles, nsteps,
                                        resampling=r, resampling_threshold=1.,
                                        return_path=True)
 
@@ -88,7 +88,7 @@ def test_diffres(integrator):
         return diffusion_resampling(key_, log_ws, samples, -0.5, jnp.linspace(0., 2., 8),
                                     integrator=integrator, ode=False)
 
-    _, _, nll_pf, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_log_g, ys[1:], nparticles, nsteps,
+    _, _, nll_pf, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_log_g, ys, nparticles, nsteps,
                                        resampling=r, resampling_threshold=1.,
                                        return_path=True)
     npt.assert_allclose(nll_pf, nll, rtol=5e-2)
@@ -98,7 +98,7 @@ def test_ensemble_ot():
     def r(key_, log_ws, samples):
         return ensemble_ot(key_, log_ws, samples, eps=0.1)
 
-    _, _, nll_pf, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_log_g, ys[1:], nparticles, nsteps,
+    _, _, nll_pf, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_log_g, ys, nparticles, nsteps,
                                        resampling=r, resampling_threshold=1.,
                                        return_path=True)
     npt.assert_allclose(nll_pf, nll, rtol=7e-2)

@@ -22,16 +22,16 @@ python ./lgssm/ot.py --id_l=0 --id_u=99 --eps=0.8 &
 python ./lgssm/ot.py --id_l=0 --id_u=99 --eps=1.6
 
 # Diffusion
-for T in 3. 4. 5.
+for T in 1. 2. 3.
 do
-  for nsteps in 8 32 128
+  for dsteps in 4 8 16 32
   do
-    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --nsteps=$nsteps --integrator='euler'
-    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --nsteps=$nsteps --integrator='euler' --sde
-    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --nsteps=$nsteps --integrator='lord_and_rougemont'
-    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --nsteps=$nsteps --integrator='lord_and_rougemont' --sde
-    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --nsteps=$nsteps --integrator='jentzen_and_kloeden'
-    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --nsteps=$nsteps --integrator='jentzen_and_kloeden' --sde
-    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --nsteps=$nsteps --integrator='tweedie' --sde
+    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --dsteps=$dsteps --integrator='euler' &
+    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --dsteps=$dsteps --integrator='euler' --sde &
+    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' &
+    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' --sde &
+    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' &
+    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' --sde &
+    python ./lgssm/diffusion.py --id_l=0 --id_u=99 --a=-0.5 --T=$T --dsteps=$dsteps --integrator='tweedie' --sde
   done
 done

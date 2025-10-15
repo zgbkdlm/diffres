@@ -14,9 +14,9 @@ python ./lgssm/baselines.py --id_l=0 --id_u=99 --method=multinomial &
 python ./lgssm/gumbel.py --id_l=0 --id_u=99 --tau=0.2 &
 python ./lgssm/gumbel.py --id_l=0 --id_u=99 --tau=0.4 &
 python ./lgssm/gumbel.py --id_l=0 --id_u=99 --tau=0.8 &
-python ./lgssm/soft.py --id_l=0 --id_u=99 --alpha=0.2 &
-python ./lgssm/soft.py --id_l=0 --id_u=99 --alpha=0.4 &
-python ./lgssm/soft.py --id_l=0 --id_u=99 --alpha=0.8
+python ./lgssm/soft.py --id_l=0 --id_u=99 --alpha=0.5 &
+python ./lgssm/soft.py --id_l=0 --id_u=99 --alpha=0.7 &
+python ./lgssm/soft.py --id_l=0 --id_u=99 --alpha=0.9
 python ./lgssm/ot.py --id_l=0 --id_u=99 --eps=0.4 &
 python ./lgssm/ot.py --id_l=0 --id_u=99 --eps=0.8 &
 python ./lgssm/ot.py --id_l=0 --id_u=99 --eps=1.6

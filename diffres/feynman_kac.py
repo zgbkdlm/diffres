@@ -50,7 +50,7 @@ def smc_feynman_kac(key: JKey,
     nparticles : int
         The number of particles `s`.
     nsteps : int
-        The number of time steps `N`.
+        The number of time steps `N`. This is redundant given a PyTree.
     resampling : Callable [JKey, (s, ), (s, ...) -> (s, ), (s, ...)]
         The resampling scheme. Given a tuple of JKey, log weights, and samples, this function should return a pair of
         resampled log weights and samples.
@@ -89,15 +89,14 @@ def smc_feynman_kac(key: JKey,
                                        lambda _: (resampling(key_resample, log_ws, samples)),
                                        lambda _: (log_ws, samples),
                                        None)
-        log_ws_, prop_samples = m_log_g(key_markov, samples, pytree_k)
-        log_ws = log_ws + log_ws_
+        log_ws_g, prop_samples = m_log_g(key_markov, samples, pytree_k)
+        log_ws = log_ws + log_ws_g
 
         c_ = jax.scipy.special.logsumexp(log_ws)
         log_ws = log_ws - c_
-        nll_ = nll_ - c_
         ess = compute_ess(log_ws)
 
-        return (prop_samples, log_ws, nll_, ess), (prop_samples, log_ws, ess) if return_path else ess
+        return (prop_samples, log_ws, nll_ - c_, ess), (prop_samples, log_ws, ess) if return_path else ess
 
     keys = jax.random.split(key_body, num=nsteps)
     if return_path:

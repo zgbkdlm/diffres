@@ -338,3 +338,32 @@ def sum_except_leading(arr: Array) -> JArray:
         return jnp.sum(arr)
     else:
         return jnp.sum(jnp.reshape(arr, (arr.shape[0], -1)), axis=-1)
+
+
+"""Project-specific tools.
+"""
+
+
+def simulate_lgssm(key, semigroup, trans_cov, obs_op, obs_cov, m0, v0, nsteps):
+    def scan_body(carry, elem):
+        x = carry
+        rnd = elem
+
+        x = semigroup @ x + chol_trans @ rnd[:dx]
+        y = obs_op @ x + chol_obs @ rnd[dx:]
+        return x, (x, y)
+
+    dy, dx = obs_op.shape
+    chol_trans = jnp.linalg.cholesky(trans_cov)
+    chol_obs = jnp.linalg.cholesky(obs_cov)
+
+    key, _ = jax.random.split(key)
+    x0 = m0 + jnp.linalg.cholesky(v0) @ jax.random.normal(key, shape=(dx,))
+
+    key, _ = jax.random.split(key)
+    y0 = obs_op @ x0 + chol_obs @ jax.random.normal(key, shape=(dy,))
+
+    key, _ = jax.random.split(key)
+    rnds = jax.random.normal(key, shape=(nsteps, dx + dy))
+    _, (xs_, ys_) = jax.lax.scan(scan_body, x0, rnds)
+    return leading_concat(x0, xs_), leading_concat(y0, ys_)

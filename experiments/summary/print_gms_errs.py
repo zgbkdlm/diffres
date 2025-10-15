@@ -25,7 +25,7 @@ for comb in list(itertools.product(a, Ts, nstepss, integrators, types)):
         pass
 
 # Print for OT
-epss = [0.2, 0.8]
+epss = [0.3, 0.6, 0.8, 0.9]
 for eps in epss:
     errs = np.zeros(num_mcs)
     filename_prefix = f'./gms/results/ot-{eps}-'

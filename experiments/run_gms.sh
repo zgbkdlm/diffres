@@ -4,7 +4,9 @@ XLA_PYTHON_CLIENT_PREALLOCATE=false
 XLA_PYTHON_CLIENT_MEM_FRACTION=.10
 
 if [[ $ON_SERVER == "yes" ]]; then
-  cd $WRKDIR/diffres/experiments
+  cd $WRKDIR/diffres
+  source .venv/bin/activate
+  cd experiments
 fi
 
 mkdir -p ./gms/results

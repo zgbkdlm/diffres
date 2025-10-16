@@ -84,7 +84,7 @@ def loss_fn_pf(params, ys_, key_):
 
 vloss_fn_kf = jax.jit(jax.vmap(jax.vmap(loss_fn_kf, in_axes=[0, None]), in_axes=[0, None]))
 vloss_fn_pf = jax.jit(jax.vmap(jax.vmap(loss_fn_pf, in_axes=[0, None, None]), in_axes=[0, None, None]))
-solver = jaxopt.LBFGS(fun=jax.jit(loss_fn_pf), value_and_grad=False, jit=False)
+solver = jaxopt.ScipyMinimize(method='L-BFGS-B', fun=loss_fn_pf, jit=True)
 
 # MC runs
 ngrids1, ngrids2 = 128, 128
@@ -126,6 +126,5 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
     np.savez_compressed(f'./lgssm/results/{args.method}-{nparticles}-{mc_id}.npz',
                         err_loss=err_loss, err_filtering_kl=err_filtering_kl, err_filtering_bures=err_filtering_bures,
                         opt_params=opt_params,
-                        opt_state_iter_num=opt_state.iter_num,
-                        opt_state_grad=opt_state.grad,
-                        opt_state_error=opt_state.error)
+                        opt_success=opt_state.success,
+                        opt_iter_num=opt_state.iter_num)

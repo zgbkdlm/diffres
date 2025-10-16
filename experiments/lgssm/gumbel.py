@@ -81,6 +81,7 @@ def loss_fn_pf(params, ys_, key_):
 
 vloss_fn_kf = jax.jit(jax.vmap(jax.vmap(loss_fn_kf, in_axes=[0, None]), in_axes=[0, None]))
 vloss_fn_pf = jax.jit(jax.vmap(jax.vmap(loss_fn_pf, in_axes=[0, None, None]), in_axes=[0, None, None]))
+solver = jaxopt.LBFGS(fun=jax.jit(loss_fn_pf), value_and_grad=False, jit=False)
 
 # MC runs
 ngrids1, ngrids2 = 128, 128
@@ -112,7 +113,6 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
     err_filtering_bures = jnp.mean(jax.vmap(bures, in_axes=[0, 0, 0, 0])(mfs_kf, vfs_kf, mfs_pf, vfs_pf))
 
     # Optimisation
-    solver = jaxopt.LBFGS(fun=loss_fn_pf, value_and_grad=False, jit=True)
     init_params = jnp.array([p1 + 1, p2 + 1])
     opt_params, opt_state = solver.run(init_params, ys_=ys, key_=key_pf)
 

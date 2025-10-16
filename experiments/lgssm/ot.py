@@ -2,7 +2,7 @@ import argparse
 import jax
 import jax.numpy as jnp
 import numpy as np
-import matplotlib.pyplot as plt
+import jaxopt
 from diffres.resampling import (multinomial, stratified, systematic,
                                 diffusion_resampling, multinomial_stopped, ensemble_ot, soft_resampling, gumbel_softmax)
 from diffres.feynman_kac import smc_feynman_kac
@@ -11,8 +11,8 @@ from diffres.tools import simulate_lgssm, bures, kl
 from functools import partial
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--id_l', type=int, default=0, help='The MC run starting index.')
-parser.add_argument('--id_u', type=int, default=4, help='The MC run ending index.')
+parser.add_argument('--id_l', type=int, help='The MC run starting index.')
+parser.add_argument('--id_u', type=int, help='The MC run ending index.')
 parser.add_argument('--nsteps', type=int, default=128, help='Number of time steps.')
 parser.add_argument('--nparticles', type=int, default=32, help='Number of nparticles.')
 parser.add_argument('--eps', type=float, default=1., help='The OT regulariser.')
@@ -70,24 +70,22 @@ def pf(params, ys_, key_, return_path=True):
                            return_path=return_path)[:3]
 
 
-@jax.jit
-@partial(jax.vmap, in_axes=[0, None])
-@partial(jax.vmap, in_axes=[0, None])
 def loss_fn_kf(params, ys_):
     return kf(params, ys_)[-1]
 
 
-@jax.jit
-@partial(jax.vmap, in_axes=[0, None, None])
-@partial(jax.vmap, in_axes=[0, None, None])
 def loss_fn_pf(params, ys_, key_):
     return pf(params, ys_, key_, return_path=False)[-1]
 
 
+vloss_fn_kf = jax.jit(jax.vmap(jax.vmap(loss_fn_kf, in_axes=[0, None]), in_axes=[0, None]))
+vloss_fn_pf = jax.jit(jax.vmap(jax.vmap(loss_fn_pf, in_axes=[0, None, None]), in_axes=[0, None, None]))
+solver = jaxopt.LBFGS(fun=loss_fn_pf, value_and_grad=False, jit=True)
+
 # MC runs
 ngrids1, ngrids2 = 128, 128
-grids_p1 = jnp.linspace(0., 0.8, ngrids1)
-grids_p2 = jnp.linspace(0.5, 1.5, ngrids2)
+grids_p1 = jnp.linspace(p1 - 0.1, p1 + 0.1, ngrids1)
+grids_p2 = jnp.linspace(p2 - 0.1, p2 + 0.1, ngrids2)
 mgrids = jnp.meshgrid(grids_p1, grids_p2)
 cartesian = jnp.dstack(mgrids)  # (ngrids2, ngrids1, 2)
 jitted_kf = jax.jit(kf)
@@ -98,11 +96,11 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
 
     xs, ys = simulate_lgssm(key_simulation, semigroup, trans_cov, obs_op, obs_cov, m0, v0, nsteps)
 
-    losses_kf = loss_fn_kf(cartesian, ys)  # (ngrids2, ngrids1)
-    losses_pf = loss_fn_pf(cartesian, ys, key_pf)
+    losses_kf = vloss_fn_kf(cartesian, ys)  # (ngrids2, ngrids1)
+    losses_pf = vloss_fn_pf(cartesian, ys, key_pf)
 
     # Compute loss error
-    err_loss = jnp.trapezoid(jnp.trapezoid(jnp.abs(losses_kf - losses_pf), x=grids_p2, axis=0), x=grids_p1, axis=0)
+    err_loss = jnp.mean((losses_kf - losses_pf) ** 2)
 
     # Compute filtering error
     mfs_kf, vfs_kf, *_ = jitted_kf(jnp.array([p1, p2]), ys)
@@ -113,8 +111,17 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
     err_filtering_kl = jnp.mean(jax.vmap(kl, in_axes=[0, 0, 0, 0])(mfs_kf, vfs_kf, mfs_pf, vfs_pf))
     err_filtering_bures = jnp.mean(jax.vmap(bures, in_axes=[0, 0, 0, 0])(mfs_kf, vfs_kf, mfs_pf, vfs_pf))
 
+    # Optimisation
+    init_params = jnp.array([p1 + 1, p2 + 1])
+    opt_params, opt_state = solver.run(init_params, ys_=ys, key_=key_pf)
+
     # Save
     print(f'OT | eps {eps} | nparticles {nparticles} | id={mc_id} '
-          f'| loss err {err_loss} | KL {err_filtering_kl} | Bures {err_filtering_bures}')
+          f'| loss err {err_loss} | KL {err_filtering_kl} | Bures {err_filtering_bures} '
+          f'| opt params {opt_params}')
     np.savez_compressed(f'./lgssm/results/ot-{eps}-{nparticles}-{mc_id}.npz',
-                        err_loss=err_loss, err_filtering_kl=err_filtering_kl, err_filtering_bures=err_filtering_bures)
+                        err_loss=err_loss, err_filtering_kl=err_filtering_kl, err_filtering_bures=err_filtering_bures,
+                        opt_params=opt_params,
+                        opt_state_iter_num=opt_state.iter_num,
+                        opt_state_grad=opt_state.grad,
+                        opt_state_error=opt_state.error)

@@ -11,7 +11,7 @@ key = jax.random.PRNGKey(666)
 
 d = 8
 
-ntries = 10  # this is sufficient, as the running times are fairly different
+ntries = 10  # this is sufficient, as the running times (of different methods) are fairly different
 nsampless = [128, 256, 512, 1024, 2048, 4096, 8192]
 
 times_multinomial = np.zeros(ntries)
@@ -75,10 +75,10 @@ for nsamples in nsampless:
     log_ws = pot_fn(xs)
     log_ws = log_ws - jax.scipy.special.logsumexp(log_ws)
 
-    for nsteps in [8, 16, 32, 64]:
+    for nsteps in [4, 8, 16, 32]:
         print(f'Diffusion with nsamples={nsamples}, nsteps={nsteps}.')
         times_diffusion = np.zeros(ntries)
-        ts = jnp.linspace(0., 2., nsteps + 1)
+        ts = jnp.linspace(0., 1., nsteps + 1)
 
 
         @jax.jit

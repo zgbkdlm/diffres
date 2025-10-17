@@ -6,9 +6,14 @@ import numpy as np
 from diffres.resampling import multinomial, stratified, systematic, diffusion_resampling, soft_resampling, \
     gumbel_softmax, ensemble_ot
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--platform', type=str, default='cpu', help='The running platform.')
+args = parser.parse_args()
+
 jax.config.update("jax_enable_x64", True)
 key = jax.random.PRNGKey(666)
 
+platform = args.platform
 d = 8
 
 ntries = 10  # this is sufficient, as the running times (of different methods) are fairly different
@@ -63,9 +68,9 @@ for nsamples in nsampless:
         times_gumbel[i] = timeit.timeit(f_gumbel, number=1)
 
     # Save results
-    np.save(f'./profiling_time/results/times-multinomial-{nsamples}', times_multinomial)
-    np.save(f'./profiling_time/results/times-soft-{nsamples}', times_soft)
-    np.save(f'./profiling_time/results/times-gumbel-{nsamples}', times_gumbel)
+    np.save(f'./profiling_time/results/times-multinomial-{nsamples}-{platform}', times_multinomial)
+    np.save(f'./profiling_time/results/times-soft-{nsamples}-{platform}', times_soft)
+    np.save(f'./profiling_time/results/times-gumbel-{nsamples}-{platform}', times_gumbel)
 
 # Diffusion
 for nsamples in nsampless:
@@ -96,7 +101,7 @@ for nsamples in nsampless:
             times_diffusion[i] = timeit.timeit(f_diffusion, number=1)
 
         # Save results
-        np.save(f'./profiling_time/results/times-diffusion-{nsamples}-{nsteps}', times_diffusion)
+        np.save(f'./profiling_time/results/times-diffusion-{nsamples}-{nsteps}-{platform}', times_diffusion)
 
 # OT
 for nsamples in nsampless:
@@ -126,4 +131,4 @@ for nsamples in nsampless:
             times_ot[i] = timeit.timeit(f_ot, number=1)
 
         # Save results
-        np.save(f'./profiling_time/results/times-ot-{nsamples}-{eps}', times_ot)
+        np.save(f'./profiling_time/results/times-ot-{nsamples}-{eps}-{platform}', times_ot)

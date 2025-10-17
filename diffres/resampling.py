@@ -272,8 +272,10 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         elif integrator == 'tweedie' and not ode:
             sg, trans_vars = fwd_coeffs(tk, t_km1)
             m, scale = tweedie(sg, trans_vars, jax.vmap(s, in_axes=[0, None]), mu, x, T - t_km1)
+        elif integrator == 'tme':
+            raise NotImplementedError('TME not tested.')
         else:
-            raise ValueError(f'Unknown integrator {integrator}.')
+            raise NotImplementedError(f'Unknown integrator {integrator}.')
         return m + scale * rnd, None
 
     key, _ = jax.random.split(key)

@@ -23,9 +23,9 @@ class NNLoktaVolterra(nnx.Module):
         self.dt = dt
         self.linear1 = nnx.Linear(4, 8, kernel_init=kernel_init, rngs=rngs)
         self.act1 = nnx.swish
-        self.linear2 = nnx.Linear(8, 32, kernel_init=kernel_init, rngs=rngs)
+        self.linear2 = nnx.Linear(8, 16, kernel_init=kernel_init, rngs=rngs)
         self.act2 = nnx.swish
-        self.linear3 = nnx.Linear(32, 2, kernel_init=kernel_init, rngs=rngs)
+        self.linear3 = nnx.Linear(16, 2, kernel_init=kernel_init, rngs=rngs)
 
     def __call__(self, x: JArray, dw: JArray):
         if x.shape != dw.shape:

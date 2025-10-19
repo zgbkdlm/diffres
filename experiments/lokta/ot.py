@@ -4,8 +4,6 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 from flax import nnx
-from six import print_
-
 from diffres.resampling import (multinomial, stratified, systematic,
                                 diffusion_resampling, multinomial_stopped, ensemble_ot, soft_resampling, gumbel_softmax)
 from diffres.feynman_kac import smc_feynman_kac
@@ -20,11 +18,7 @@ parser.add_argument('--nparticles', type=int, default=64, help='Number of nparti
 parser.add_argument('--lr', type=float, default=5e-3, help='Learning rate.')
 parser.add_argument('--niters', type=int, default=1000, help='Number of learning iterations.')
 parser.add_argument('--npreds', type=int, default=100, help='Number of ensemble predictions.')
-parser.add_argument('--a', type=float, default=-0.5, help='The coefficient.')
-parser.add_argument('--T', type=float, default=1., help='The diffusion terminal time.')
-parser.add_argument('--dsteps', type=int, default=4, help='The integration steps of the diffusion.')
-parser.add_argument('--integrator', type=str, default='euler', help='The integrator.')
-parser.add_argument('--sde', action='store_true', help='The probability flow model or the SDE model.')
+parser.add_argument('--eps', type=float, default=1., help='The OT regulariser.')
 args = parser.parse_args()
 
 mc_id = args.mc_id
@@ -84,16 +78,11 @@ xs, ys = simulate_ssm(key, f)
 
 # Run PF with the true model
 nparticles = args.nparticles
-a = args.a
-T = args.T
-dsteps = args.dsteps
-ts = jnp.linspace(0., T, dsteps + 1)
-integrator = args.integrator
-ode = not args.sde
+eps = args.eps
 
 
 def resampling(key_, log_ws_, samples_):
-    return diffusion_resampling(key_, log_ws_, samples_, a, ts, integrator=integrator, ode=ode)
+    return ensemble_ot(key_, log_ws_, samples_, eps)
 
 
 def m0_sampler(key_, _):
@@ -141,8 +130,8 @@ def train_step(model_, optimiser_, key_):
     return loss_
 
 
-print_prefix = f'Diffres ({mc_id}) | a {a} | T {T} | dsteps={dsteps} | {integrator} {"| ode" if ode else "| sde"}'
-filename_prefix = f'diffres-{a}-{T}-{dsteps}-{integrator}-{"ode" if ode else "sde"}-'
+print_prefix = f'OT ({mc_id}) | eps {eps}'
+filename_prefix = f'ot-{eps}-'
 losses = np.zeros(args.niters)
 for i in range(args.niters):
     key, _ = jax.random.split(key)

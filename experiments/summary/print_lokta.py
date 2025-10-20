@@ -7,26 +7,26 @@ nparticles = 64
 num_mcs = 10
 
 # Print for diffusion
-# a = [-0.5, ]
-# Ts = [1., 2.]
-# dstepss = [4, 8, 16]
-# integrators = ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden', 'tweedie']
-# types = ['ode', 'sde']
-#
-# for comb in list(itertools.product(a, Ts, dstepss, integrators, types)):
-#     a, T, dsteps, integrator, type = comb
-#     filename_prefix = f'./lokta/results/diffres-{a}-{T}-{dsteps}-{integrator}-{type}-'
-#     if os.path.isfile(filename_prefix + f'0.npz'):
-#         for mc_id in range(num_mcs):
-#             data = np.load(filename_prefix + f'{mc_id}.npz')
-#             print(
-#                 f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} | loss {data["losses"][-1]} | pred err {data["pred_err"]}.')
-#     else:
-#         print(f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} not tested. Pass')
-#         pass
+a = [-0.5, ]
+Ts = [1., 2.]
+dstepss = [4, 8, 16]
+integrators = ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden', 'tweedie']
+types = ['ode', 'sde']
+
+for comb in list(itertools.product(a, Ts, dstepss, integrators, types)):
+    a, T, dsteps, integrator, type = comb
+    filename_prefix = f'./lokta/results/diffres-{a}-{T}-{dsteps}-{integrator}-{type}-'
+    if os.path.isfile(filename_prefix + f'0.npz'):
+        for mc_id in range(num_mcs):
+            data = np.load(filename_prefix + f'{mc_id}.npz')
+            print(
+                f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} | loss {data["losses"][-1]} | target loss {data["target_nll"]} pred err {data["pred_err"]}.')
+    else:
+        print(f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} not tested. Pass')
+        pass
 
 # Print for OT
-epss = [0.5, 1.0]
+epss = [0.5, 1.0, 1.5]
 
 for eps in epss:
     filename_prefix = f'./lokta/results/ot-{eps}-'
@@ -34,7 +34,7 @@ for eps in epss:
         for mc_id in range(num_mcs):
             data = np.load(filename_prefix + f'{mc_id}.npz')
             print(
-                f'OT {eps} loss {data["losses"][-1]} | pred err {data["pred_err"]}.')
+                f'OT {eps} loss {data["losses"][-1]} | target loss {data["target_nll"]} pred err {data["pred_err"]}.')
     else:
         print(f'OT {eps} loss not tested. Pass')
         pass
@@ -48,7 +48,7 @@ for tau in taus:
         for mc_id in range(num_mcs):
             data = np.load(filename_prefix + f'{mc_id}.npz')
             print(
-                f'gumbel {tau} loss {data["losses"][-1]} | pred err {data["pred_err"]}.')
+                f'gumbel {tau} loss {data["losses"][-1]} | target loss {data["target_nll"]} pred err {data["pred_err"]}.')
     else:
         print(f'gumbel {tau} loss not tested. Pass')
         pass
@@ -63,7 +63,7 @@ for alpha in alphas:
         for mc_id in range(num_mcs):
             data = np.load(filename_prefix + f'{mc_id}.npz')
             print(
-                f'soft {alpha} loss {data["losses"][-1]} | pred err {data["pred_err"]}.')
+                f'soft {alpha} loss {data["losses"][-1]} | target loss {data["target_nll"]} pred err {data["pred_err"]}.')
     else:
         print(f'soft {alpha} loss not tested. Pass')
         pass

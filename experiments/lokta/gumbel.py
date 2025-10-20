@@ -44,7 +44,7 @@ def f(x, dw):
 
 
 def g(x):
-    return 2 / (1 + jnp.exp(jnp.array([-5 * x[0] + 5, -x[0] * x[1] + 2])))
+    return 5 / (1 + jnp.exp(jnp.array([-5 * x[0] + 4, -x[0] * x[1] + 4])))
 
 
 def logpmf_y_cond_x(y, x):
@@ -153,4 +153,4 @@ keys = jax.random.split(key, num=args.npreds)
 pred_err = jnp.mean(jax.vmap(pred_err_per_path)(keys))
 print(print_prefix + f' | Prediction RMSE {pred_err}')
 np.savez_compressed('./lokta/results/' + filename_prefix + f'{mc_id}.npz',
-                    losses=losses, pred_err=pred_err)
+                    losses=losses, target_nll=target_nll, pred_err=pred_err)

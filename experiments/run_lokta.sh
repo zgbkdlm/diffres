@@ -21,7 +21,8 @@ do
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.7 &
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.9
   python ./lokta/ot.py --mc_id=$mc_id --eps=0.5 &
-  python ./lokta/ot.py --mc_id=$mc_id --eps=1.0
+  python ./lokta/ot.py --mc_id=$mc_id --eps=1.0 &
+  python ./lokta/ot.py --mc_id=$mc_id --eps=1.5
 done
 
 # Diffusion
@@ -32,9 +33,9 @@ do
     for dsteps in 4 8 16
     do
       python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='euler' &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='euler' --sde
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='euler' --sde &
       python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' --sde
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' --sde &
       python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' &
       python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' --sde &
       python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='tweedie' --sde

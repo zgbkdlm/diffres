@@ -133,6 +133,10 @@ def soft_resampling(key: JKey, log_ws, samples: JArray, alpha: float) -> Tuple[J
     ----------
     Karkus, P., Hsu, D., & Lee, W. S. (2018).
     Particle filter networks with application to visual localization. In Conference on Robot Learning.
+
+    Notes
+    -----
+    This implementation works at the limit alpha=0 or 1.
     """
     n = log_ws.shape[0]
     # log_ws_q = jnp.concatenate([log_ws[:, None] + jnp.log(alpha), jnp.full((n, 1), jnp.log((1 - alpha) / n))], axis=-1)

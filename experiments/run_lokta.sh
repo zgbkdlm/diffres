@@ -17,6 +17,7 @@ do
   python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.2 &
   python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.4 &
   python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.6 &
+  python ./lokta/soft.py --mc_id=$mc_id --alpha=0. &
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.5 &
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.7 &
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.9

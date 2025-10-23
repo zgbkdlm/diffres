@@ -16,6 +16,7 @@ python ./gms/baselines.py --id_l=0 --id_u=99 --method=multinomial &
 python ./gms/gumbel.py --id_l=0 --id_u=99 --tau=0.2 &
 python ./gms/gumbel.py --id_l=0 --id_u=99 --tau=0.4 &
 python ./gms/gumbel.py --id_l=0 --id_u=99 --tau=0.8 &
+python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0. &
 python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.2 &
 python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.4 &
 python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.8

@@ -36,13 +36,14 @@ class NNLoktaVolterra(nnx.Module):
     
 
 class Pendulum_1D(nnx.Module):
-    def __init__(self, g_init: float, dt: float):
+    def __init__(self, g_init: float, pendulum_length: float, dt: float):
         self.g = nnx.Param(g_init)
         self.dt = dt
+        self.pendulum_length = pendulum_length
 
     def __call__(self, x, q):
         alpha, ddt_alpha = x
-        return jnp.array([alpha + ddt_alpha * self.dt + q[0], ddt_alpha - self.g.value * jnp.sin(alpha) * self.dt + q[1]])
+        return jnp.array([alpha + ddt_alpha * self.dt + q[0], ddt_alpha - (self.g.value/self.pendulum_length) * jnp.sin(alpha) * self.dt + q[1]])
 
 
 class NNPendulum_ForwardDynamics(nnx.Module):

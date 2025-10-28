@@ -34,6 +34,7 @@ key = np.load('rnd_keys.npy')[mc_id]
 # Model parameters
 dx = 2
 g_true = 9.81
+pendulum_length = 0.4
 sigma_q = jnp.array([0.01, 0.01])
 sigma_xi_pixel = 0.01
 img_height, img_width, img_channels = 32, 32, 1
@@ -45,7 +46,7 @@ dt = mT / nsteps
 
 def f(x, q):
     alpha, ddt_alpha = x
-    return jnp.array([alpha + ddt_alpha*dt + q[0], ddt_alpha - g_true * jnp.sin(alpha)*dt + q[1]])
+    return jnp.array([alpha + ddt_alpha*dt + q[0], ddt_alpha - (g_true/pendulum_length) * jnp.sin(alpha)*dt + q[1]])
 
 def g_true_renderer(x, img_height, img_width, dpi=50):
     """
@@ -55,7 +56,7 @@ def g_true_renderer(x, img_height, img_width, dpi=50):
     Output: numpy array of shape (img_height, img_width, 1) representing the greyscale image with pixel values normalized to (0,1).
     """
     # calculate position of pendulum
-    alpha, pendulum_length = x[0], 0.4
+    alpha = x[0]
     x_centre, y_centre = 0.5, 0.5
     x_pos = x_centre + pendulum_length * jnp.sin(alpha)
     y_pos = y_centre - pendulum_length * jnp.cos(alpha)

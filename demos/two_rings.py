@@ -57,7 +57,7 @@ post_ws = jnp.exp(log_post_ws)
 @jax.jit
 def resampling(key_, log_ws_, samples_):
     return diffusion_resampling(key_, log_ws_, samples_,
-                                -0.5, jnp.linspace(0., 5., 1024),
+                                -1., jnp.linspace(0., 2., 512),
                                 integrator='euler', ode=False)
 
 

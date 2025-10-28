@@ -2,11 +2,13 @@ name: Unit test
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - 'diffres/**'
       - 'tests/**'
       - '.github/workflows/**'
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
     inputs:
       name:

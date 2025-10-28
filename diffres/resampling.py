@@ -221,7 +221,7 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     mu = jnp.sum(ws[:, None] * samples.reshape(n, -1), axis=0).reshape(*data_shape)
     # stat_vars = jnp.einsum('i,i...->...', ws, (samples - mu) ** 2)
     stat_vars = jnp.sum(ws[:, None] * ((samples - mu) ** 2).reshape(n, -1), axis=0).reshape(*data_shape)
-    b2 = -stat_vars / (2 * a)
+    b2 = -stat_vars * (2 * a)
     t0, T = ts[0], ts[-1]
 
     def fwd_coeffs(t, s_):

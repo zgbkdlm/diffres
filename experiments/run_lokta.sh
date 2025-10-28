@@ -33,13 +33,13 @@ do
   do
     for dsteps in 4 8 16
     do
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='euler' &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='euler' --sde &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' --sde &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' --sde &
-      python ./lokta/diffusion.py --mc_id=$mc_id --a=-0.5 --T=$T --dsteps=$dsteps --integrator='tweedie' --sde
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-1. --T=$T --dsteps=$dsteps --integrator='euler' &
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-1. --T=$T --dsteps=$dsteps --integrator='euler' --sde &
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-1. --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' &
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-1. --T=$T --dsteps=$dsteps --integrator='lord_and_rougemont' --sde &
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-1. --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' &
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-1. --T=$T --dsteps=$dsteps --integrator='jentzen_and_kloeden' --sde &
+      python ./lokta/diffusion.py --mc_id=$mc_id --a=-1. --T=$T --dsteps=$dsteps --integrator='tweedie' --sde
     done
   done
 done

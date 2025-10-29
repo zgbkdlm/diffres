@@ -107,12 +107,11 @@ class NNPendulum_decoder(nnx.Module):
     Output dimension: (..., 32, 32, 1)
     """
     def __init__(self, *, rngs: nnx.Rngs):
-        self.linear1 = nnx.Linear(2, 64, rngs=rngs)
+        self.linear1 = nnx.Linear(2, 16, rngs=rngs)
         self.act1 = nnx.relu
         start_channels = 16
-        self.linear2 = nnx.Linear(64, 4 * 4 * start_channels, rngs=rngs) 
+        self.linear2 = nnx.Linear(16, 4 * 4 * start_channels, rngs=rngs)
         self.act2 = nnx.relu
-                
         self.deconv1 = nnx.ConvTranspose(
             in_features=start_channels,  
             out_features=32,           
@@ -142,17 +141,18 @@ class NNPendulum_decoder(nnx.Module):
             rngs=rngs
         )
         
-        self.act5 = nnx.sigmoid 
+        # self.act5 = nnx.sigmoid # TODO:
 
     def __call__(self, x: JArray):
+        """(..., 2)"""
         z = self.act1(self.linear1(x))
-        z = self.act2(self.linear2(z))
+        z = self.act2(self.linear2(z))  # (..., 256)
         batch_dims = x.shape[:-1]
         z = z.reshape((*batch_dims, 4, 4, 16)) 
-        z = self.act3(self.deconv1(z))
+        z = self.act3(self.deconv1(z))  # (..., w, h, 32)
         z = self.act4(self.deconv2(z))
         z = self.deconv3(z)
-        return self.act5(z)
+        return z
     
 
 class NNPendulum_decoder2(nnx.Module):

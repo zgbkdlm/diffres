@@ -99,6 +99,11 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
     # Compute error
     err = swd(post_samples, approx_post_samples)
 
+    # Compute resampling variance (test func = m)
+    approx_m = jnp.einsum('n,n...->...', jnp.exp(approx_post_log_ws), approx_post_samples)
+    true_m = jnp.einsum('c,c...->...', post_vs, post_ms)
+    residual = approx_m - true_m
+
     # Save result
     print(
         f'diffres (id={mc_id}) with a={a} | T={T} | nsteps={nsteps} | {integrator} {"| ode" if ode else "| sde"} '
@@ -106,4 +111,4 @@ for mc_id, key_mc in zip(np.arange(args.id_l, args.id_u + 1), keys_mc):
     np.savez_compressed(
         f'./gms/results/diffres-{a}-{T}-{nsteps}-{integrator}-{"ode" if ode else "sde"}-{mc_id}.npz',
         post_samples=post_samples, approx_post_log_ws=approx_post_log_ws,
-        approx_post_samples=approx_post_samples, err=err)
+        approx_post_samples=approx_post_samples, err=err, residual=residual)

@@ -1,3 +1,5 @@
+from os import times
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,27 +16,33 @@ nsampless = [128, 256, 512, 1024, 2048, 4096, 8192]
 nstepss = [4, 8, 16, 32]
 epss = [0.1, 0.2, 0.4, 0.8]
 
-container_diff = np.zeros((len(nsampless), len(nstepss)))
-container_ot = np.zeros((len(nsampless), len(epss)))
+times_diff = np.zeros((len(nsampless), len(nstepss)))
+times_ot = np.zeros((len(nsampless), len(epss)))
+errs_diff = np.zeros((len(nsampless), len(nstepss)))
+errs_ot = np.zeros((len(nsampless), len(epss)))
 
 for i, nsamples in enumerate(nsampless):
     for j, nsteps in enumerate(nstepss):
-        data = np.load(f'./profiling_time/results/times-diffusion-{nsamples}-{nsteps}-{platform}.npy')
-        container_diff[i, j] = np.mean(data)
+        data = np.load(f'./profiling_time/results/times-diffusion-{nsamples}-{nsteps}-{platform}.npz')
+        times_diff[i, j] = np.mean(data['times'])
+        errs_diff[i, j] = np.mean(data['errs'] ** 2) ** 0.5
+        print(f'Diff nsteps={nsteps} nsamples={nsamples} err={errs_diff[i, j]}')
 
 for i, nsamples in enumerate(nsampless):
     for j, eps in enumerate(epss):
-        data = np.load(f'./profiling_time/results/times-ot-{nsamples}-{eps}-{platform}.npy')
-        container_ot[i, j] = np.mean(data)
+        data = np.load(f'./profiling_time/results/times-ot-{nsamples}-{eps}-{platform}.npz')
+        times_ot[i, j] = np.mean(data['times'])
+        errs_ot[i, j] = np.mean(data['errs'] ** 2) ** 0.5
+        print(f'OT eps={eps} nsamples={nsamples} err={errs_ot[i, j]}')
 
 if style == '3d':
     ax = plt.figure().add_subplot(projection='3d')
 
     for i, nsteps in enumerate(nstepss):
-        ax.plot(np.log2(nsampless), np.log2(nsteps * np.ones(len(nsampless))), container_diff[:, i], c='black')
+        ax.plot(np.log2(nsampless), np.log2(nsteps * np.ones(len(nsampless))), times_diff[:, i], c='black')
 
     for i, eps in enumerate(epss):
-        ax.plot(np.log2(nsampless), np.log2(eps * 40 * np.ones(len(nsampless))), container_ot[:, i], c='tab:blue')
+        ax.plot(np.log2(nsampless), np.log2(eps * 40 * np.ones(len(nsampless))), times_ot[:, i], c='tab:blue')
     ax.set_xlabel('Number of samples (log base 2)')
     ax.set_ylabel(r'Parameters (log base 2)')
     ax.set_zlabel('Average time (s)')
@@ -42,19 +50,19 @@ if style == '3d':
 
 else:
     fig, axes = plt.subplots(figsize=(11, 6), ncols=2, sharey='row')
-    axes[0].plot(nsampless, container_diff[:, 0], c='black', linewidth=3, label=f'Diffusion ($K={nstepss[0]}$)')
-    axes[0].plot(nsampless, container_ot[:, 0], c='black', linewidth=3, linestyle='--',
+    axes[0].plot(nsampless, times_diff[:, 0], c='black', linewidth=3, label=f'Diffusion ($K={nstepss[0]}$)')
+    axes[0].plot(nsampless, times_ot[:, 0], c='black', linewidth=3, linestyle='--',
                  label=rf'OT ($\varepsilon={epss[0]}$)')
-    axes[0].plot(nsampless, container_ot[:, 3], c='black', linewidth=3, linestyle='dotted',
+    axes[0].plot(nsampless, times_ot[:, 3], c='black', linewidth=3, linestyle='dotted',
                  label=rf'OT ($\varepsilon={epss[3]}$)')
     axes[0].set_yscale('log', base=10)
     axes[0].set_xscale('log', base=2)
     axes[0].set_xlabel('Number of samples $N$')
     axes[0].set_ylabel('Average time (s)')
 
-    axes[1].plot(nstepss, container_diff[-1, :], c='black', linewidth=3, label='Diffusion')
+    axes[1].plot(nstepss, times_diff[-1, :], c='black', linewidth=3, label='Diffusion')
     ax2 = axes[1].twiny()
-    ax2.plot(epss, container_ot[-1, :], c='black', linewidth=3, linestyle='--', label='OT')
+    ax2.plot(epss, times_ot[-1, :], c='black', linewidth=3, linestyle='--', label='OT')
     ax2.set_xscale('log', base=2)
     axes[1].set_xscale('log', base=2)
     ax2.set_yscale('log', base=10)

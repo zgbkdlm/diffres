@@ -40,6 +40,10 @@ def gen_data(key_):
     return log_ws_, xs_
 
 
+def compute_residual(log_ws, xs_):
+    return post_m - jnp.einsum('n,nd->d', jnp.exp(log_ws), xs_)
+
+
 for nsamples in nsampless:
 
     @jax.jit
@@ -49,7 +53,7 @@ for nsamples in nsampless:
 
     def f_multinomial(key_, log_ws_, xs_):
         vals = r_multinomial(key_, log_ws_, xs_)
-        return (val.block_until_ready() for val in vals)
+        return vals[0].block_until_ready(), vals[1].block_until_ready()
 
 
     @jax.jit
@@ -59,7 +63,7 @@ for nsamples in nsampless:
 
     def f_soft(key_, log_ws_, xs_):
         vals = r_soft(key_, log_ws_, xs_)
-        return (val.block_until_ready() for val in vals)
+        return vals[0].block_until_ready(), vals[1].block_until_ready()
 
 
     @jax.jit
@@ -69,7 +73,7 @@ for nsamples in nsampless:
 
     def f_gumbel(key_, log_ws_, xs_):
         vals = r_gumbel(key_, log_ws_, xs_)
-        return (val.block_until_ready() for val in vals)
+        return vals[0].block_until_ready(), vals[1].block_until_ready()
 
 
     print(f'Standard resampling with nsamples={nsamples}.')
@@ -90,9 +94,9 @@ for nsamples in nsampless:
         times_gumbel[i] = timeit.timeit(partial(f_gumbel, key, *data), number=1)
 
         key, _ = jax.random.split(key)
-        errs_multinomial[i] = (post_m - jnp.einsum('n,nd->d', *f_multinomial(key, *data))) ** 2
-        errs_multinomial[i] = (post_m - jnp.einsum('n,nd->d', *f_soft(key, *data))) ** 2
-        errs_multinomial[i] = (post_m - jnp.einsum('n,nd->d', *f_gumbel(key, *data))) ** 2
+        errs_multinomial[i] = compute_residual(*f_multinomial(key, *data))
+        errs_soft[i] = compute_residual(*f_soft(key, *data))
+        errs_gumbel[i] = compute_residual(*f_gumbel(key, *data))
 
     # Save results
     np.savez(f'./profiling_time/results/times-multinomial-{nsamples}-{platform}',
@@ -121,7 +125,7 @@ for nsamples in nsampless:
 
         def f_diffusion(key_, log_ws_, xs_):
             vals = r_diffusion(key_, log_ws_, xs_)
-            return (val.block_until_ready() for val in vals)
+            return vals[0].block_until_ready(), vals[1].block_until_ready()
 
 
         # Trigger JIT
@@ -136,7 +140,7 @@ for nsamples in nsampless:
             times_diffusion[i] = timeit.timeit(partial(f_diffusion, key, *data), number=1)
 
             key, _ = jax.random.split(key)
-            errs_diffusion[i] = (post_m - jnp.einsum('n,nd->d', *f_diffusion(key, *data))) ** 2
+            errs_diffusion[i] = compute_residual(*f_diffusion(key, *data))
 
         # Save results
         np.savez(f'./profiling_time/results/times-diffusion-{nsamples}-{nsteps}-{platform}',
@@ -157,7 +161,7 @@ for nsamples in nsampless:
 
         def f_ot(key_, log_ws_, xs_):
             vals = r_ot(key_, log_ws_, xs_)
-            return (val.block_until_ready() for val in vals)
+            return vals[0].block_until_ready(), vals[1].block_until_ready()
 
 
         # Trigger JIT
@@ -172,7 +176,7 @@ for nsamples in nsampless:
             times_ot[i] = timeit.timeit(partial(f_ot, key, *data), number=1)
 
             key, _ = jax.random.split(key)
-            errs_ot[i] = (post_m - jnp.einsum('n,nd->d', *f_ot(key, *data))) ** 2
+            errs_ot[i] = compute_residual(*f_ot(key, *data))
 
         # Save results
         np.savez(f'./profiling_time/results/times-ot-{nsamples}-{eps}-{platform}',

@@ -75,7 +75,8 @@ def multinomial_stopped(key: JKey, log_weights: JArray, samples: JArray) -> Tupl
     return jnp.full((n,), -jnp.log(n)) + log_weights[inds] - jax.lax.stop_gradient(log_weights[inds]), samples[inds]
 
 
-def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None) -> Tuple[JArray, JArray]:
+def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray,
+                eps: float = None, implicit_diff: bool = True) -> Tuple[JArray, JArray]:
     """Entropic OT resampling.
 
     Parameters
@@ -88,6 +89,9 @@ def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None) -
         Particles.
     eps : float
         Entropic regularization parameter. If None, set to 1 / log(n).
+    implicit_diff : bool, default=True
+        Whether use implicit differentiation for Sinkhorn, otherwise unroll the gradients. Enabling this may lead to
+        numerical issues, see, https://github.com/zgbkdlm/diffres/issues/5.
 
     Returns
     -------
@@ -105,7 +109,7 @@ def ensemble_ot(key: JKey, log_ws: JArray, samples: JArray, eps: float = None) -
     geom = pointcloud.PointCloud(samples, samples, epsilon=eps)
     prob = linear_problem.LinearProblem(geom,
                                         a=jnp.full((n,), 1 / n), b=jnp.exp(log_ws))
-    solver = sinkhorn.Sinkhorn()
+    solver = sinkhorn.Sinkhorn() if implicit_diff else sinkhorn.Sinkhorn(implicit_diff=None)
     out = solver(prob)
     return jnp.full((n,), -jnp.log(n)), out.matrix @ samples * n
 

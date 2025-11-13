@@ -5,7 +5,7 @@ from flax import nnx
 from diffres.tools import leading_concat
 from diffres.typings import JArray, FloatScalar
 
-kernel_init = nnx.initializers.glorot_uniform()  # constant 0 doesn't work
+kernel_init = nnx.initializers.glorot_uniform(dtype=jnp.float64)  # constant 0 doesn't work
 
 
 class NNLoktaVolterra(nnx.Module):
@@ -21,17 +21,15 @@ class NNLoktaVolterra(nnx.Module):
 
     def __init__(self, dt: float, rngs: nnx.Rngs):
         self.dt = dt
-        self.linear1 = nnx.Linear(4, 8, kernel_init=kernel_init, rngs=rngs)
+        self.linear1 = nnx.Linear(4, 32, kernel_init=kernel_init, rngs=rngs)
         self.act1 = nnx.swish
-        self.linear2 = nnx.Linear(8, 16, kernel_init=kernel_init, rngs=rngs)
-        self.act2 = nnx.swish
-        self.linear3 = nnx.Linear(16, 2, kernel_init=kernel_init, rngs=rngs)
+        self.linear2 = nnx.Linear(32, 2, kernel_init=kernel_init, rngs=rngs)
 
     def __call__(self, x: JArray, dw: JArray):
         if x.shape != dw.shape:
             raise AssertionError('x, dw size must match.')
         z = jnp.concatenate([x, dw], axis=-1)
-        return x + self.linear3(self.act2(self.linear2(self.act1(self.linear1(z))))) * self.dt
+        return x + self.linear2(self.act1(self.linear1(z))) * self.dt
 
 
 def nnx_save(model: nnx.Module, filename: str, overwrite: bool = True):

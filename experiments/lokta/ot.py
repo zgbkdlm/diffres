@@ -82,7 +82,7 @@ eps = args.eps
 
 
 def resampling(key_, log_ws_, samples_):
-    return ensemble_ot(key_, log_ws_, samples_, eps)
+    return ensemble_ot(key_, log_ws_, samples_, eps, implicit_diff=False)
 
 
 def m0_sampler(key_, _):

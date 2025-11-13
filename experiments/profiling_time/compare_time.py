@@ -22,7 +22,7 @@ y, xi_s = -0.5, 0.5
 pot_fn = lambda x: jnp.sum(jax.scipy.stats.norm.logpdf(y, x, xi_s), axis=-1)
 post_m = 1 / (1 + xi_s ** 2) * y
 
-ntries = 20  # this is sufficient, as the running times (of different methods) are fairly different
+ntries = 50  # this is sufficient, as the running times (of different methods) are fairly different
 nsampless = [128, 256, 512, 1024, 2048, 4096, 8192]
 
 times_multinomial = np.zeros(ntries)

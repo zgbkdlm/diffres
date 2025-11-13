@@ -5,7 +5,7 @@ from flax import nnx
 from diffres.tools import leading_concat
 from diffres.typings import JArray, FloatScalar
 
-kernel_init = nnx.initializers.glorot_uniform(dtype=jnp.float64)  # constant 0 doesn't work
+kernel_init_lokta = nnx.initializers.glorot_uniform(dtype=jnp.float64)  # constant 0 doesn't work
 
 
 class NNLoktaVolterra(nnx.Module):
@@ -21,9 +21,9 @@ class NNLoktaVolterra(nnx.Module):
 
     def __init__(self, dt: float, rngs: nnx.Rngs):
         self.dt = dt
-        self.linear1 = nnx.Linear(4, 32, kernel_init=kernel_init, rngs=rngs)
+        self.linear1 = nnx.Linear(4, 32, kernel_init=kernel_init_lokta, param_dtype=jnp.float64, rngs=rngs)
         self.act1 = nnx.swish
-        self.linear2 = nnx.Linear(32, 2, kernel_init=kernel_init, rngs=rngs)
+        self.linear2 = nnx.Linear(32, 2, kernel_init=kernel_init_lokta, param_dtype=jnp.float64, rngs=rngs)
 
     def __call__(self, x: JArray, dw: JArray):
         if x.shape != dw.shape:

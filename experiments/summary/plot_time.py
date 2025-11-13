@@ -41,27 +41,31 @@ if style == '3d':
     plt.show()
 
 else:
-    fig, axes = plt.subplots(figsize=(11, 6), ncols=2)
-    axes[0].plot(nsampless, container_diff[:, 0], c='black', linewidth=2, label='Diffusion')
-    axes[0].plot(nsampless, container_ot[:, 0], c='black', linewidth=2, linestyle='--', label='OT')
+    fig, axes = plt.subplots(figsize=(11, 6), ncols=2, sharey='row')
+    axes[0].plot(nsampless, container_diff[:, 0], c='black', linewidth=3, label=f'Diffusion ($K={nstepss[0]}$)')
+    axes[0].plot(nsampless, container_ot[:, 0], c='black', linewidth=3, linestyle='--',
+                 label=rf'OT ($\varepsilon={epss[0]}$)')
+    axes[0].plot(nsampless, container_ot[:, 3], c='black', linewidth=3, linestyle='dotted',
+                 label=rf'OT ($\varepsilon={epss[3]}$)')
     axes[0].set_yscale('log', base=10)
     axes[0].set_xscale('log', base=2)
-    axes[0].set_xlabel('Number of samples')
+    axes[0].set_xlabel('Number of samples $N$')
     axes[0].set_ylabel('Average time (s)')
 
-    axes[1].plot(nstepss, container_diff[-1, :], c='black', linewidth=2, label='Diffusion')
+    axes[1].plot(nstepss, container_diff[-1, :], c='black', linewidth=3, label='Diffusion')
     ax2 = axes[1].twiny()
-    ax2.plot(epss, container_ot[-1, :], c='black', linewidth=2, linestyle='--', label='OT')
+    ax2.plot(epss, container_ot[-1, :], c='black', linewidth=3, linestyle='--', label='OT')
     ax2.set_xscale('log', base=2)
     axes[1].set_xscale('log', base=2)
     ax2.set_yscale('log', base=10)
     axes[1].set_yscale('log', base=10)
-    axes[1].set_xlabel(r'Number of time steps (bottom) and OT $\epsilon$ (top)')
+    axes[1].set_xlabel(r'Number of time steps (bottom) and OT $\varepsilon$ (top)')
 
     for ax in axes:
         ax.grid(linestyle='--', alpha=0.3, which='both')
     axes[0].legend(fontsize=21)
 
     plt.tight_layout(pad=.1)
-    plt.subplots_adjust(top=.931, left=.082, right=.962)
+    plt.subplots_adjust(top=.931, left=.086, right=.967)
+    plt.savefig('time-comparison.pdf', transparent=True)
     plt.show()

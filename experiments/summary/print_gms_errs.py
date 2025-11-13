@@ -4,7 +4,7 @@ import numpy as np
 
 
 # Print for diffusion
-a = [-0.5, ]
+a = [-1., -1.5]
 Ts = [3., 4., 5.]
 nstepss = [8, 32, 128]
 integrators = ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden', 'tweedie']

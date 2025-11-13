@@ -9,7 +9,7 @@ from functools import partial
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--platform', type=str, default='cpu', help='The running platform.')
-parser.add_argument('--integrator', type=str, default='euler', help='The integrator.')
+parser.add_argument('--integrator', type=str, default='jentzen_and_kloeden', help='The integrator.')
 parser.add_argument('--sde', action='store_true', help='The probability flow model or the SDE model.')
 args = parser.parse_args()
 

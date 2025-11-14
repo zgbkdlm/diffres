@@ -12,12 +12,11 @@ fi
 mkdir -p ./lokta/results
 
 # Reference methods
-for mc_id in {0..9}
+for mc_id in {0..19}
 do
-  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.2 &
-  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.4 &
-  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.6 &
-  python ./lokta/soft.py --mc_id=$mc_id --alpha=0. &
+  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.1 &
+  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.3 &
+  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.5 &
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.5 &
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.7 &
   python ./lokta/soft.py --mc_id=$mc_id --alpha=0.9
@@ -27,7 +26,7 @@ do
 done
 
 # Diffusion
-for mc_id in {0..9}
+for mc_id in {0..19}
 do
   for T in 1. 2.
   do

@@ -15,13 +15,14 @@ nsamples=10000
 
 # Reference methods
 python ./gms/baselines.py --id_l=0 --id_u=99 --method=multinomial --nsamples=$nsamples &
+python ./gms/gumbel.py --id_l=0 --id_u=99 --tau=0. --nsamples=$nsamples &
 python ./gms/gumbel.py --id_l=0 --id_u=99 --tau=0.2 --nsamples=$nsamples &
 python ./gms/gumbel.py --id_l=0 --id_u=99 --tau=0.4 --nsamples=$nsamples &
 python ./gms/gumbel.py --id_l=0 --id_u=99 --tau=0.8 --nsamples=$nsamples &
-python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0. --nsamples=$nsamples &
 python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.2 --nsamples=$nsamples &
 python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.4 --nsamples=$nsamples &
-python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.8 --nsamples=$nsamples
+python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.8 --nsamples=$nsamples &
+python ./gms/soft.py --id_l=0 --id_u=99 --alpha=1. --nsamples=$nsamples
 python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.3 --nsamples=$nsamples &
 python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.6 --nsamples=$nsamples &
 python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.8 --nsamples=$nsamples &

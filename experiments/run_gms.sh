@@ -23,7 +23,9 @@ python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.2 --nsamples=$nsamples &
 python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.4 --nsamples=$nsamples &
 python ./gms/soft.py --id_l=0 --id_u=99 --alpha=0.8 --nsamples=$nsamples
 python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.3 --nsamples=$nsamples &
-python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.8 --nsamples=$nsamples
+python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.6 --nsamples=$nsamples &
+python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.8 --nsamples=$nsamples &
+python ./gms/ot.py --id_l=0 --id_u=99 --eps=0.9 --nsamples=$nsamples
 
 # Diffusion
 for T in 1. 2. 3.

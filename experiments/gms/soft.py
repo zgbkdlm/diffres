@@ -6,6 +6,7 @@ from diffres.resampling import multinomial, stratified, systematic, diffusion_re
     gumbel_softmax, ensemble_ot
 from diffres.tools import sampling_gm, gm_lin_posterior
 from ott.tools.sliced import sliced_wasserstein
+from ott.geometry.costs import PNormP
 from functools import partial
 
 parser = argparse.ArgumentParser()
@@ -26,7 +27,7 @@ keys_mc = np.load('rnd_keys.npy')[args.id_l:args.id_u + 1]
 # Metric
 @jax.jit
 def swd(samples1, samples2, wx=None, wy=None):
-    return sliced_wasserstein(samples1, samples2, wx, wy, n_proj=1000)[0]
+    return sliced_wasserstein(samples1, samples2, wx, wy, cost_fn=PNormP(p=1), n_proj=1000)[0]
 
 
 sampler_gm = jax.jit(jax.vmap(sampling_gm, in_axes=[0, None, None, None, None, None]))

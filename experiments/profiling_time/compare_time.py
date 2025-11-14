@@ -99,12 +99,12 @@ for nsamples in nsampless:
         errs_gumbel[i] = compute_residual(*f_gumbel(key, *data))
 
     # Save results
-    np.savez(f'./profiling_time/results/times-multinomial-{nsamples}-{platform}',
-             times=times_multinomial, errs=errs_multinomial)
-    np.savez(f'./profiling_time/results/times-soft-{nsamples}-{platform}',
-             times=times_soft, errs=errs_soft)
-    np.savez(f'./profiling_time/results/times-gumbel-{nsamples}-{platform}',
-             times=times_gumbel, errs=errs_gumbel)
+    np.savez_compressed(f'./profiling_time/results/times-multinomial-{nsamples}-{platform}',
+                        times=times_multinomial, errs=errs_multinomial)
+    np.savez_compressed(f'./profiling_time/results/times-soft-{nsamples}-{platform}',
+                        times=times_soft, errs=errs_soft)
+    np.savez_compressed(f'./profiling_time/results/times-gumbel-{nsamples}-{platform}',
+                        times=times_gumbel, errs=errs_gumbel)
 
 # Diffusion
 for nsamples in nsampless:
@@ -143,8 +143,8 @@ for nsamples in nsampless:
             errs_diffusion[i] = compute_residual(*f_diffusion(key, *data))
 
         # Save results
-        np.savez(f'./profiling_time/results/times-diffusion-{nsamples}-{nsteps}-{platform}',
-                 times=times_diffusion, errs=errs_diffusion)
+        np.savez_compressed(f'./profiling_time/results/times-diffusion-{nsamples}-{nsteps}-{platform}',
+                            times=times_diffusion, errs=errs_diffusion)
 
 # OT
 for nsamples in nsampless:
@@ -179,5 +179,5 @@ for nsamples in nsampless:
             errs_ot[i] = compute_residual(*f_ot(key, *data))
 
         # Save results
-        np.savez(f'./profiling_time/results/times-ot-{nsamples}-{eps}-{platform}',
-                 times=times_ot, errs=errs_ot)
+        np.savez_compressed(f'./profiling_time/results/times-ot-{nsamples}-{eps}-{platform}',
+                            times=times_ot, errs=errs_ot)

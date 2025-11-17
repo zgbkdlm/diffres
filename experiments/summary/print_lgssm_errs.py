@@ -1,3 +1,6 @@
+"""
+Tabulate the errors on the LGSSM.
+"""
 import itertools
 import os
 import numpy as np

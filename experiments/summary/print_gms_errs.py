@@ -1,3 +1,6 @@
+"""
+Tabulate the Gaussian mixture errors.
+"""
 import itertools
 import os
 import numpy as np

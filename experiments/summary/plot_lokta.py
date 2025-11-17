@@ -1,3 +1,6 @@
+"""
+Plot the prediction errors and loss traces of the Lokta model.
+"""
 import os
 import numpy as np
 import matplotlib.pyplot as plt

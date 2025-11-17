@@ -1,5 +1,6 @@
-from os import times
-
+"""
+Visualise the computational costs of diffusion vs OT.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 

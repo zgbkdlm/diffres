@@ -37,7 +37,7 @@ diff_methods = ['-1.0-1.0-4-euler-sde',
                 '-1.0-2.0-16-euler-sde']
 diff_labels = ['$T=1$\n $K=4$',
                '$T=2$\n $K=16$']
-epss = [0.5, 1.0]
+epss = [0.3, 0.5]
 taus = [0.3, ]
 alphas = [0.7, ]
 
@@ -93,6 +93,13 @@ def simulate_ssm(key_, f_):
 
 mc_id = 7
 mc_key = np.load('rnd_keys.npy')[mc_id]  # This precisely reproduces the original seed
+key, _ = jax.random.split(mc_key)
+true_path, _ = simulate_ssm(key, f)
+keys = jax.random.split(key, num=npreds)
+true_paths, _ = jax.vmap(simulate_ssm, in_axes=[0, None])(keys, f)
+mc_mean = jnp.mean(true_paths, axis=0)
+mc_var = jnp.var(true_paths, axis=0)
+key, _ = jax.random.split(key)
 
 # Diffusion
 for method in diff_methods:
@@ -100,16 +107,18 @@ for method in diff_methods:
     data = np.load(filename_prefix + f'{mc_id}.npz')
     model = nnx_load(model, './lokta/checkpoints/diffres-' + method + f'-{mc_id}', display=True)
 
-    key, _ = jax.random.split(mc_key)
-    true_path, _ = simulate_ssm(key, f)
-
     keys = jax.random.split(key, num=npreds)
     pred_paths, _ = jax.vmap(simulate_ssm, in_axes=[0, None])(keys, model)
 
     fig, ax = plt.subplots()
 
-    ax.plot(model_ts, true_path[:, 1],
-            linewidth=3, c='black', label='True path')
+    ax.plot(model_ts, true_path[:, 1], linewidth=3, c='black', label='True path')
+    ax.fill_between(model_ts,
+                    mc_mean[:, 1] - 1.96 * jnp.sqrt(mc_var[:, 1]),
+                    mc_mean[:, 1] + 1.96 * jnp.sqrt(mc_var[:, 1]),
+                    color='black',
+                    edgecolor='none',
+                    alpha=0.15, label='0.95 confidence')
     for j in range(10):
         ax.plot(model_ts, pred_paths[j, :, 1],
                 linestyle='--', c='black', alpha=.3, label='Predicted paths' if j == 9 else '')
@@ -120,23 +129,24 @@ for method in diff_methods:
     plt.tight_layout(pad=.1)
     plt.show()
 
-
 # OT
 for eps in epss:
     filename_prefix = f'./lokta/results/ot-{eps}-'
     data = np.load(filename_prefix + f'{mc_id}.npz')
     model = nnx_load(model, f'./lokta/checkpoints/ot-{eps}-{mc_id}', display=True)
 
-    key, _ = jax.random.split(mc_key)
-    true_path, _ = simulate_ssm(key, f)
-
     keys = jax.random.split(key, num=npreds)
     pred_paths, _ = jax.vmap(simulate_ssm, in_axes=[0, None])(keys, model)
 
     fig, ax = plt.subplots()
 
-    ax.plot(model_ts, true_path[:, 1],
-            linewidth=3, c='black', label='True path')
+    ax.plot(model_ts, true_path[:, 1], linewidth=3, c='black', label='True path')
+    ax.fill_between(model_ts,
+                    mc_mean[:, 1] - 1.96 * jnp.sqrt(mc_var[:, 1]),
+                    mc_mean[:, 1] + 1.96 * jnp.sqrt(mc_var[:, 1]),
+                    color='black',
+                    edgecolor='none',
+                    alpha=0.15, label='0.95 confidence')
     for j in range(10):
         ax.plot(model_ts, pred_paths[j, :, 1],
                 linestyle='--', c='black', alpha=.3, label='Predicted paths' if j == 9 else '')

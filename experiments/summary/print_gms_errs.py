@@ -4,6 +4,7 @@ Tabulate the Gaussian mixture errors.
 import itertools
 import os
 import numpy as np
+from diffres.tools import statistics2latex
 
 # Print for diffusion
 a = [-1., -1.5]
@@ -12,6 +13,9 @@ nstepss = [8, 32, 128]
 integrators = ['euler', 'lord_and_rougemont', 'jentzen_and_kloeden', 'tweedie']
 types = ['ode', 'sde']
 num_mcs = 100
+scale_swd = -1
+scale_var = -2
+print(f'The SWD results are scaled by 10^({scale_swd}), and resampling variance by 10^({scale_var})')
 
 for comb in list(itertools.product(a, Ts, nstepss, integrators, types)):
     a, T, nsteps, integrator, type = comb
@@ -24,7 +28,9 @@ for comb in list(itertools.product(a, Ts, nstepss, integrators, types)):
             errs[mc_id] = data['err']
             residuals[mc_id] = np.sum(data['residual'] ** 2)
         print(
-            f'Diffres {a}-{T}-{nsteps}-{integrator}-{type} | err {np.mean(errs)} +- {np.std(errs)} | res {np.mean(residuals)} +- {np.std(residuals)}.')
+            f'Diffres {a}-{T}-{nsteps}-{integrator}-{type} '
+            f'| {statistics2latex(np.mean(errs), np.std(errs), scale_swd)} '
+            f'| {statistics2latex(np.mean(residuals), np.std(residuals), scale_var)}.')
     else:
         print(f'Diffres {a}-{T}-{nsteps}-{integrator}-{type} not tested. Pass')
         pass
@@ -40,7 +46,9 @@ for eps in epss:
             data = np.load(filename_prefix + f'{mc_id}.npz')
             errs[mc_id] = data['err']
             residuals[mc_id] = np.sum(data['residual'] ** 2)
-        print(f'OT {eps} | err {np.mean(errs)} +- {np.std(errs)} | res {np.mean(residuals)} +- {np.std(residuals)}.')
+        print(f'OT {eps} '
+              f'| {statistics2latex(np.mean(errs), np.std(errs), scale_swd)} '
+              f'| {statistics2latex(np.mean(residuals), np.std(residuals), scale_var)}.')
     else:
         print(f'OT {eps} not tested. Pass')
         pass
@@ -57,7 +65,9 @@ for tau in taus:
             errs[mc_id] = data['err']
             residuals[mc_id] = np.sum(data['residual'] ** 2)
         print(
-            f'Gumbel {tau} | err {np.mean(errs)} +- {np.std(errs)} | res {np.mean(residuals)} +- {np.std(residuals)}.')
+            f'Gumbel {tau} '
+            f'| {statistics2latex(np.mean(errs), np.std(errs), scale_swd)} '
+            f'| {statistics2latex(np.mean(residuals), np.std(residuals), scale_var)}.')
     else:
         print(f'Gumbel {tau} not tested. Pass')
         pass
@@ -74,7 +84,9 @@ for alpha in alphas:
             errs[mc_id] = data['err']
             residuals[mc_id] = np.sum(data['residual'] ** 2)
         print(
-            f'Soft {alpha} | err {np.mean(errs)} +- {np.std(errs)} | res {np.mean(residuals)} +- {np.std(residuals)}.')
+            f'Soft {alpha} '
+            f'| {statistics2latex(np.mean(errs), np.std(errs), scale_swd)} '
+            f'| {statistics2latex(np.mean(residuals), np.std(residuals), scale_var)}.')
     else:
         print(f'Soft {alpha} not tested. Pass')
         pass
@@ -89,7 +101,9 @@ if os.path.isfile(filename_prefix + '0.npz'):
         errs[mc_id] = data['err']
         residuals[mc_id] = np.sum(data['residual'] ** 2)
     print(
-        f'Multinomial | err {np.mean(errs)} +- {np.std(errs)} | res {np.mean(residuals)} +- {np.std(residuals)}.')
+        f'Multinomial '
+        f'| {statistics2latex(np.mean(errs), np.std(errs), scale_swd)} '
+        f'| {statistics2latex(np.mean(residuals), np.std(residuals), scale_var)}.')
 else:
     print(f'Multinomial not tested. Pass')
     pass

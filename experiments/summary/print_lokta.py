@@ -47,7 +47,7 @@ for comb in list(itertools.product(a, Ts, dstepss, integrators, types)):
         pass
 
 # Print for OT
-epss = [0.5, 1.0, 1.5]
+epss = [0.3, 0.5, 1.0, 1.5]
 
 for eps in epss:
     errs_preds = np.zeros(num_mcs)

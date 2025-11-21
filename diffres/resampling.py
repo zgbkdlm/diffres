@@ -215,7 +215,8 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         New log weights and particles.
 
     #TODO: Make efficient parallel implementation
-    #TODO: Efficient grad propagation
+    #TODO: Efficient grad propagation (diffrax)
+    #TODO: move b2 around
     """
     n = log_ws.shape[0]
     data_shape = samples.shape[1:]

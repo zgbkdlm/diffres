@@ -29,7 +29,7 @@ diff_methods = ['-1.0-1.0-4-euler-sde',
                 '-1.0-2.0-16-euler-sde']
 diff_labels = ['$T=1$\n $K=4$',
                '$T=2$\n $K=16$']
-epss = [0.5, 1.0]
+epss = [0.3, 1.0]
 taus = [0.3, ]
 alphas = [0.7, ]
 

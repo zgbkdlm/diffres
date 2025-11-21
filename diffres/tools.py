@@ -340,6 +340,16 @@ def sum_except_leading(arr: Array) -> JArray:
         return jnp.sum(jnp.reshape(arr, (arr.shape[0], -1)), axis=-1)
 
 
+def array2latex(arr: Array) -> str:
+    pass
+
+
+def statistics2latex(mean: float, std: float, e_power: int, decimals: int = 2) -> str:
+    s_m = f'{mean / (10 ** e_power):.{decimals}f}'
+    s_var = f'{std / (10 ** e_power):.{decimals}f}'
+    return rf'${s_m} \pm {s_var}$'
+
+
 """Project-specific tools.
 """
 

@@ -4,11 +4,17 @@ Tabulate the errors on the LGSSM.
 import itertools
 import os
 import numpy as np
+from diffres.tools import statistics2latex
 
 # Global params
 nparticles = 32
 num_mcs = 100
 true_params = np.array([0.5, 1.])
+scale_kl = -1
+scale_bures = -2
+scale_param = -1
+print(f'The KL, Bures, and param results are scaled by '
+      f'10^({scale_kl}), 10^({scale_bures}), and 10^({scale_param}), resp.')
 
 
 def check_success(errs_param, lbfgs_flat):
@@ -46,10 +52,10 @@ for comb in list(itertools.product(a, Ts, dstepss, integrators, types)):
         num_success = np.sum(successes)
         print(
             f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} '
-            f'| loss err {np.mean(errs_loss)} +- {np.std(errs_loss)}'
-            f'| kl err {np.mean(errs_kl):.2e} +- {np.std(errs_kl):.2e}'
-            f'| bures err {np.mean(errs_bures):.2e} +- {np.std(errs_bures):.2e}'
-            f'| params err {np.mean(errs_params[successes]):.2e} +- {np.std(errs_params[successes]):.2e}'
+            f'| loss err ${np.mean(errs_loss):.2f} \\pm {np.std(errs_loss):.2f}$ '
+            f'| kl err {statistics2latex(np.mean(errs_kl), np.std(errs_kl), scale_kl)} '
+            f'| bures err {statistics2latex(np.mean(errs_bures), np.std(errs_bures), scale_bures)} '
+            f'| params err {statistics2latex(np.mean(errs_params[successes]), np.std(errs_params[successes]), scale_param)} '
             f'| Successes {num_success}')
     else:
         print(f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} not tested. Pass')
@@ -77,10 +83,10 @@ for eps in epss:
         num_success = np.sum(successes)
         print(
             f'OT {eps} '
-            f'| loss err {np.mean(errs_loss)} +- {np.std(errs_loss)}'
-            f'| kl err {np.mean(errs_kl):.2e} +- {np.std(errs_kl):.2e}'
-            f'| bures err {np.mean(errs_bures):.2e} +- {np.std(errs_bures):.2e}'
-            f'| params err {np.mean(errs_params[successes]):.2e} +- {np.std(errs_params[successes]):.2e}'
+            f'| loss err ${np.mean(errs_loss):.2f} \\pm {np.std(errs_loss):.2f}$ '
+            f'| kl err {statistics2latex(np.mean(errs_kl), np.std(errs_kl), scale_kl)} '
+            f'| bures err {statistics2latex(np.mean(errs_bures), np.std(errs_bures), scale_bures)} '
+            f'| params err {statistics2latex(np.mean(errs_params[successes]), np.std(errs_params[successes]), scale_param)} '
             f'| Successes {num_success}')
     else:
         print(f'OT {eps} not tested. Pass')
@@ -108,10 +114,10 @@ for tau in taus:
         num_success = np.sum(successes)
         print(
             f'Gumbel {tau} '
-            f'| loss err {np.mean(errs_loss)} +- {np.std(errs_loss)}'
-            f'| kl err {np.mean(errs_kl):.2e} +- {np.std(errs_kl):.2e}'
-            f'| bures err {np.mean(errs_bures):.2e} +- {np.std(errs_bures):.2e}'
-            f'| params err {np.mean(errs_params[successes]):.2e} +- {np.std(errs_params[successes]):.2e}'
+            f'| loss err ${np.mean(errs_loss):.2f} \\pm {np.std(errs_loss):.2f}$ '
+            f'| kl err {statistics2latex(np.mean(errs_kl), np.std(errs_kl), scale_kl)} '
+            f'| bures err {statistics2latex(np.mean(errs_bures), np.std(errs_bures), scale_bures)} '
+            f'| params err {statistics2latex(np.mean(errs_params[successes]), np.std(errs_params[successes]), scale_param)} '
             f'| Successes {num_success}')
     else:
         print(f'Gumbel {tau} not tested. Pass')
@@ -139,10 +145,10 @@ for alpha in alphas:
         num_success = np.sum(successes)
         print(
             f'Soft {alpha} '
-            f'| loss err {np.mean(errs_loss)} +- {np.std(errs_loss)}'
-            f'| kl err {np.mean(errs_kl):.2e} +- {np.std(errs_kl):.2e}'
-            f'| bures err {np.mean(errs_bures):.2e} +- {np.std(errs_bures):.2e}'
-            f'| params err {np.mean(errs_params[successes]):.2e} +- {np.std(errs_params[successes]):.2e}'
+            f'| loss err ${np.mean(errs_loss):.2f} \\pm {np.std(errs_loss):.2f}$ '
+            f'| kl err {statistics2latex(np.mean(errs_kl), np.std(errs_kl), scale_kl)} '
+            f'| bures err {statistics2latex(np.mean(errs_bures), np.std(errs_bures), scale_bures)} '
+            f'| params err {statistics2latex(np.mean(errs_params[successes]), np.std(errs_params[successes]), scale_param)} '
             f'| Successes {num_success}')
     else:
         print(f'Soft {alpha} not tested. Pass')
@@ -168,11 +174,11 @@ if os.path.isfile(filename_prefix + f'{nparticles}-0.npz'):
     num_success = np.sum(successes)
     print(
         f'Multinomial '
-        f'| loss err {np.mean(errs_loss)} +- {np.std(errs_loss)}'
-        f'| kl err {np.mean(errs_kl):.2e} +- {np.std(errs_kl):.2e}'
-        f'| bures err {np.mean(errs_bures):.2e} +- {np.std(errs_bures):.2e}'
-        f'| params err {np.mean(errs_params[successes]):.2e} +- {np.std(errs_params[successes]):.2e}'
-        f'| Successes {num_success}')
+        f'| loss err ${np.mean(errs_loss):.2f} \\pm {np.std(errs_loss):.2f}$ '
+            f'| kl err {statistics2latex(np.mean(errs_kl), np.std(errs_kl), scale_kl)} '
+            f'| bures err {statistics2latex(np.mean(errs_bures), np.std(errs_bures), scale_bures)} '
+            f'| params err {statistics2latex(np.mean(errs_params[successes]), np.std(errs_params[successes]), scale_param)} '
+            f'| Successes {num_success}')
 else:
     print(f'Multinomial not tested. Pass')
     pass

@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import itertools
+from diffres.tools import statistics2latex
 
 # Global params
 nparticles = 64
@@ -40,7 +41,8 @@ for comb in list(itertools.product(a, Ts, dstepss, integrators, types)):
         num_success = np.sum(~nan_flags)
         print(
             f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} '
-            f'| pred err {np.mean(errs_preds[~nan_flags]):.2e} '
+            # f'| pred err {np.mean(errs_preds[~nan_flags]):.2e} '
+            f'| pred err {statistics2latex(np.mean(errs_preds[~nan_flags]), np.std(errs_preds[~nan_flags]), 0)} '
             f'| Success {num_success}')
     else:
         print(f'Diffres {a}-{T}-{dsteps}-{integrator}-{type} not tested. Pass')
@@ -65,7 +67,7 @@ for eps in epss:
         num_success = np.sum(~nan_flags)
         print(
             f'OT {eps} '
-            f'| pred err {np.mean(errs_preds[~nan_flags]):.2e} '
+            f'| pred err {statistics2latex(np.mean(errs_preds[~nan_flags]), np.std(errs_preds[~nan_flags]), 0)} '
             f'| Success {num_success}')
     else:
         print(f'OT {eps} loss not tested. Pass')
@@ -90,7 +92,7 @@ for tau in taus:
         num_success = np.sum(~nan_flags)
         print(
             f'gumbel {tau} '
-            f'| pred err {np.mean(errs_preds[~nan_flags]):.2e} '
+            f'| pred err {statistics2latex(np.mean(errs_preds[~nan_flags]), np.std(errs_preds[~nan_flags]), 0)} '
             f'| Success {num_success}')
     else:
         print(f'gumbel {tau} loss not tested. Pass')
@@ -115,7 +117,7 @@ for alpha in alphas:
         num_success = np.sum(~nan_flags)
         print(
             f'soft {alpha} '
-            f'| pred err {np.mean(errs_preds[~nan_flags]):.2e} '
+            f'| pred err {statistics2latex(np.mean(errs_preds[~nan_flags]), np.std(errs_preds[~nan_flags]), 0)} '
             f'| Success {num_success}')
     else:
         print(f'soft {alpha} loss not tested. Pass')

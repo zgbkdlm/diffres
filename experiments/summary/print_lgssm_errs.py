@@ -17,8 +17,8 @@ print(f'The KL, Bures, and param results are scaled by '
       f'10^({scale_kl}), 10^({scale_bures}), and 10^({scale_param}), resp.')
 
 
-def check_success(errs_param, lbfgs_flat):
-    if lbfgs_flat and errs_param < 1.9:
+def check_success(errs_param, lbfgs_flag):
+    if lbfgs_flag and errs_param < 1.9:
         return True
     else:
         return False

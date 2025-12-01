@@ -148,7 +148,7 @@ def soft_resampling(key: JKey, log_ws, samples: JArray, alpha: float) -> Tuple[J
     vp = jax.vmap(lambda z: jnp.array([jnp.log(alpha) + z, jnp.log(1 - alpha) - jnp.log(n)]), in_axes=[0])
     log_ws_q = jax.scipy.special.logsumexp(vp(log_ws), axis=-1)
     inds = _multinomial(key, log_ws_q)
-    log_ws_post = log_ws - log_ws_q
+    log_ws_post = (log_ws - log_ws_q)[inds]
     return log_ws_post - jax.scipy.special.logsumexp(log_ws_post), samples[inds]
 
 

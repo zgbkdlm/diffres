@@ -51,7 +51,7 @@ integrator = 'jentzen_and_kloeden'
 ode = False
 eps = 0.3
 tau = 0.2
-alpha = 0.5
+alpha = 0.2
 
 
 def resampling_diff(key_, log_ws_, samples_):

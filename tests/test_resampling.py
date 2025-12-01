@@ -22,7 +22,7 @@ log_ws = log_ws_ - jax.scipy.special.logsumexp(log_ws_)
 
 key_resampling, _ = jax.random.split(key)
 
-soft_r = lambda k, lw, x: soft_resampling(k, lw, x, alpha=1. - 1e-8)
+soft_r = lambda k, lw, x: soft_resampling(k, lw, x, alpha=1 - 1e-3)
 gumbel_r = lambda k, lw, x: gumbel_softmax(k, lw, x, tau=1e-3)
 
 

@@ -51,7 +51,7 @@ integrator = 'jentzen_and_kloeden'
 ode = False
 eps = 0.3
 tau = 0.2
-alpha = 0.2
+alpha = 0.1
 
 
 def resampling_diff(key_, log_ws_, samples_):
@@ -158,13 +158,13 @@ fig.colorbar(c)
 axes[1].set_title('Diffusion')
 c = axes[2].pcolormesh(*mgrids, losses_ot, cmap=plt.cm.binary, rasterized=True)
 fig.colorbar(c)
-axes[2].set_title('OT')
+axes[2].set_title(rf'OT ($\varepsilon={eps}$)')
 c = axes[3].pcolormesh(*mgrids, losses_gumbel, cmap=plt.cm.binary, rasterized=True)
 fig.colorbar(c)
-axes[3].set_title('Gumbel')
+axes[3].set_title(rf'Gumbel (${tau}$)')
 c = axes[4].pcolormesh(*mgrids, losses_soft, cmap=plt.cm.binary, rasterized=True)
 fig.colorbar(c)
-axes[4].set_title('Soft')
+axes[4].set_title(rf'Soft (${alpha}$)')
 c = axes[5].pcolormesh(*mgrids, losses_multinomial, cmap=plt.cm.binary, rasterized=True)
 fig.colorbar(c)
 axes[5].set_title('Multinomial')

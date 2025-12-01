@@ -54,7 +54,7 @@ for eps in epss:
         pass
 
 # Print for Gumbel
-taus = [0.2, 0.4, 0.8]
+taus = [0.1, 0.2, 0.4, 0.8]
 for tau in taus:
     errs = np.zeros(num_mcs)
     residuals = np.zeros(num_mcs)
@@ -73,7 +73,7 @@ for tau in taus:
         pass
 
 # Print for Soft
-alphas = [0., 0.2, 0.4, 0.8]
+alphas = [0., 0.2, 0.4, 0.8, 0.9]
 for alpha in alphas:
     errs = np.zeros(num_mcs)
     residuals = np.zeros(num_mcs)

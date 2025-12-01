@@ -30,11 +30,11 @@ diff_methods = ['-1.0-1.0-4-euler-sde',
 diff_labels = ['$T=1$\n $K=4$',
                '$T=2$\n $K=16$']
 epss = [0.3, 1.0]
-taus = [0.3, ]
-alphas = [0.7, ]
+taus = [0.1, 0.3]
+alphas = [0.5, 0.7]
 
 # Plot err statistics
-fig, ax = plt.subplots(figsize=(7.5, 6))
+fig, ax = plt.subplots(figsize=(8, 6))
 means = []
 
 # Diffusion

@@ -10,8 +10,9 @@ name = 'diffres'
 version = '0.0.1'
 authors = [
     { name='Zheng Zhao', email='zz@zabemon.com' },
+    { name='Jennifer R. Andersson', email='jennifer.andersson@it.uu.se' }
 ]
-description = 'Differentialble resampling with ensemble score'
+description = 'Diffusion differentiable resampling'
 readme = 'README.md'
 license = {file = 'LICENSE'}
 requires-python = '>=3.10'

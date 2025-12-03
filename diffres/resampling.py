@@ -1,12 +1,12 @@
 import jax
 import jax.numpy as jnp
 from diffres.integators import euler_maruyama, lord_and_rougemont, jentzen_and_kloeden, tweedie
-from diffres.typings import JArray, JKey
 from diffrax import diffeqsolve, ODETerm, Euler
 from ott.geometry import pointcloud
 from ott.problems.linear import linear_problem
 from ott.solvers.linear import sinkhorn
-from typing import Tuple
+from typing import Tuple, Callable
+from diffres.typings import JArray, JKey, FloatScalar
 
 
 def _sorted_uniforms(n, key: JKey) -> JArray:
@@ -190,7 +190,7 @@ def gumbel_softmax(key: JKey, log_ws, samples: JArray, tau: float) -> Tuple[JArr
 def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
                          integrator: str = 'euler',
                          ode: bool = True) -> Tuple[JArray, JArray]:
-    """Differentiable resampling using ensemble score.
+    """Differentiable and informative diffusion resampling. This implementation uses an empirical Gaussian reference.
 
     Parameters
     ----------
@@ -285,6 +285,86 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
             raise NotImplementedError('TME not tested.')
         else:
             raise NotImplementedError(f'Unknown integrator {integrator}.')
+        return m + scale * rnd, None
+
+    key, _ = jax.random.split(key)
+    rnds = jax.random.normal(key, (nsteps, n, *data_shape))
+    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], rnds))
+    return jnp.full((n,), -jnp.log(n)), x0s
+
+
+def diffusion_resampling_generic(key: JKey, log_ws: JArray, samples: JArray,
+                                 ref_sampler: Callable[[JKey], JArray],
+                                 logpdf_trans: Callable[[JArray, JArray, FloatScalar, FloatScalar], JArray],
+                                 score_ref: Callable,
+                                 b: FloatScalar,
+                                 ts: JArray,
+                                 ode: bool = True) -> Tuple[JArray, JArray]:
+    """Differentiable and informative diffusion resampling. This implementation is different to `diffusion_resampling`
+    that here you choose for the reference distribution.
+
+    Parameters
+    ----------
+    key : JKey
+        A JAX random key.
+    log_ws : JArray (n, )
+        Weights.
+    samples : JArray (n, ...)
+        Particles of leading size n and arbitrary data shape.
+    ref_sampler : JKey -> (n, ...)
+        A sampler for the reference distribution that returns n samples.
+    score_ref : (n, ...) -> (n, ...)
+        Score of the reference distribution.
+    logpdf_trans : (n, ...), (n, ...), (), () -> (n, )
+        The semigroup associated with the reference process. p_{t | s}(x_t | x_s) for t > s.
+    b : FloatScalar
+        SDE dispersion parameter.
+    ts : JArray (nsteps + 1, )
+        Time steps t0, t1, ..., tnsteps.
+    ode : bool
+        If True, use the probability flow ODE.
+
+    Returns
+    -------
+    (n, ), (n, d)
+        New log weights and particles.
+
+    #TODO: Make efficient parallel implementation
+    #TODO: Efficient grad propagation (diffrax)
+    """
+    n = log_ws.shape[0]
+    data_shape = samples.shape[1:]
+    nsteps = ts.shape[0] - 1
+    t0, T = ts[0], ts[-1]
+
+    _grad_trans = lambda xt, xs, t, s_: jax.grad(logpdf_trans, argnums=0)(xt, xs, t, s_)
+
+    def s(x, t):
+        """Ensemble score
+        (..., ), () -> (..., )
+        """
+        log_alps = log_ws + logpdf_trans(x, samples, t, 0.)  # (n, )
+        log_alps = log_alps - jax.scipy.special.logsumexp(log_alps)
+        return jnp.sum(jnp.exp(log_alps)[:, None] * jax.vmap(_grad_trans,
+                                                             in_axes=[None, 0, None, None])(x, samples, t, 0.).reshape(n, -1),
+                       axis=0).reshape(*data_shape)
+
+    def drift(x, t):
+        if ode:
+            return b ** 2 * (-score_ref(x) + jax.vmap(s, in_axes=[0, None])(x, T - t))
+        else:
+            return b ** 2 * (-score_ref(x) + 2 * jax.vmap(s, in_axes=[0, None])(x, T - t))
+
+    # SDE simulation
+    key, _ = jax.random.split(key)
+    xTs = ref_sampler(key)
+
+    def scan_body(carry, elem):
+        x = carry
+        t_km1, tk, rnd = elem
+
+        dt = tk - t_km1
+        m, scale = euler_maruyama(drift, 0. if ode else b * 2 ** 0.5, x, t_km1, dt)
         return m + scale * rnd, None
 
     key, _ = jax.random.split(key)

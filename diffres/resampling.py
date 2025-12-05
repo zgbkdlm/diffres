@@ -329,6 +329,10 @@ def diffusion_resampling_generic(key: JKey, log_ws: JArray, samples: JArray,
     (n, ), (n, d)
         New log weights and particles.
 
+    Notes
+    -----
+    This is the implementation using the form in the paper.
+
     #TODO: Make efficient parallel implementation
     #TODO: Efficient grad propagation (diffrax)
     """

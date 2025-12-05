@@ -1,5 +1,6 @@
 """
-Diffres should exactly recover multinomial resampling at continuous time.
+Diffres should exactly recover the Doob's h transform at continuous time.
+The same actually also applies to OT.
 """
 import jax
 import jax.numpy as jnp
@@ -14,7 +15,7 @@ key = jax.random.PRNGKey(666)
 
 d = 2
 
-nsamples = 256
+nsamples = 128
 nsteps = 4096
 
 # Generate dummy data
@@ -26,8 +27,9 @@ log_ws = log_ws - jax.scipy.special.logsumexp(log_ws)
 ts = jnp.linspace(0., 1., nsteps + 1)
 
 key, _ = jax.random.split(key)
-# _, samples = diffusion_resampling(key, log_ws, xs, -1., ts, integrator='jentzen_and_kloeden', ode=False)
-_, samples = ensemble_ot(key, log_ws, xs, eps=0.001)
+# _, samples = diffusion_resampling(key, log_ws, xs, -1., ts,
+#                                   integrator='jentzen_and_kloeden', ode=False)
+_, samples = ensemble_ot(key, log_ws, xs, eps=1e-4)
 
 _, m_samples = multinomial(key, log_ws, xs)
 

@@ -26,7 +26,11 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Information Analysis',
     'Topic :: Scientific/Engineering :: Mathematics'
 ]
-keywords = ['Markov models']
+keywords = [
+    'Markov models',
+    'resampling',
+    'sequential Monte Carlo',
+    'diffusion']
 dependencies = [
     'pytest',
     'numpy==2.3.3',

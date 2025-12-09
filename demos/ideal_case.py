@@ -1,5 +1,5 @@
 """
-Diffres should exactly recover the Doob's h transform at continuous time.
+Diffres should exactly recover a Doob's h transform at continuous time.
 The same actually also applies to OT.
 """
 import jax

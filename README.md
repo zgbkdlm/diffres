@@ -1,4 +1,4 @@
-# Diffusion differential resampling
+# Diffusion differentiable resampling
 
 This repository features implementation for the paper "Diffusion differential resampling".
 In this paper, we have introduced a new **differentiable-by-construction**, **consistent**, and **informative** resampling method via diffusion models. 

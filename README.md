@@ -2,7 +2,7 @@
 
 This repository features implementation for the paper "Diffusion differential resampling".
 In this paper, we have introduced a new **differentiable-by-construction**, **consistent**, and **informative** resampling method via diffusion models. 
-Check out our preprint for details at https://arxiv.org/abs/xxxx.xxxxx.
+Check out our preprint for details at https://arxiv.org/abs/2512.10401.
 
 # Installation
 Install the package via a standard procedure. 
@@ -56,7 +56,7 @@ Please cite using the following bibtex.
 @article{Andersson2025diffres, 
     author = {Andersson, Jennifer R. and Zhao, Zheng}, 
     title = {Diffusion differentiable resampling},
-    journal = {arXiv preprint arXiv:xxxx.xxxxx},
+    journal = {arXiv preprint arXiv:2512.10401},
     year = {2025},
 }
 ```

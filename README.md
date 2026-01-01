@@ -62,8 +62,7 @@ Please cite using the following bibtex.
 ```
 
 # License
-GPL v3 or later. 
-For those aiming proprietarisation, please invest your own time to re-implement the algorithm by yourself. 
+Mozilla Public License, v. 2.0.
 
 # Contact
 Zheng Zhao, Linköping University, https://zz.zabemon.com.

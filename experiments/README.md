@@ -6,7 +6,5 @@ To run the image experiments, first run the following command in the terminal.
 mkdir -p datasets
 cd datasets
 
-pip install mnists==0.4.1
-
-pip install datasets==4.8.4
+pip install mnists==0.4.1 datasets==4.8.4 dm-pix==0.4.4
 ```

@@ -3,6 +3,7 @@ import jax.numpy as jnp
 import numpy as np
 import math
 import mnists
+import dm_pix as pix
 from diffres.typings import Array, JArray, JKey
 from datasets import load_dataset
 from abc import ABCMeta
@@ -116,6 +117,20 @@ class MNIST(DataSet):
         self.test_ys = ys[self.n + self.n_val:]
 
 
+def _aug(key, image):
+    r"""Augmentation based on https://optax.readthedocs.io/en/latest/_collections/examples/cifar10_resnet.html
+    """
+    image = jnp.reshape(image, (32, 32, 3))
+    k_crop, k_flip, k_bright, k_contrast, k_sat = jax.random.split(key, 5)
+    padded = jnp.pad(image, ((4, 4), (4, 4), (0, 0)), mode='constant', constant_values=0)
+    image = pix.random_crop(k_crop, padded, (32, 32, 3))
+    image = pix.random_flip_left_right(k_flip, image)
+    image = pix.random_brightness(k_bright, image, max_delta=0.2)
+    image = pix.random_contrast(k_contrast, image, lower=0.8, upper=1.2)
+    image = pix.random_saturation(k_sat, image, lower=0.8, upper=1.2)
+    return jnp.clip(image, 0.0, 1.0).reshape(3072)
+
+
 class CIFAR10(DataSet):
 
     def __init__(self, key: JKey):
@@ -144,3 +159,10 @@ class CIFAR10(DataSet):
         # Test data
         self.test_xs = test_imgs[self.n_val:]
         self.test_ys = test_labels[self.n_val:]
+
+    @staticmethod
+    def augmentation(key, data):
+        images, labels = data
+        n = images.shape[0]
+        keys = jax.random.split(key, num=n)
+        return jax.vmap(_aug, in_axes=[0, 0])(keys, images), labels

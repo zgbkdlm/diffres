@@ -119,15 +119,15 @@ class MNIST(DataSet):
 class CIFAR10(DataSet):
 
     def __init__(self, key: JKey):
-        # The datasets is already well shuffled, don't perm
+        # The dataset is already well shuffled, don't perm
         ds = load_dataset('uoft-cs/cifar10')
 
         train, test = ds['train'], ds['test']
         train_imgs = jnp.asarray(train['img']).reshape(50000, 3072) / 255
-        train_labels = jnp.asarray(train['label'])
+        train_labels = jnp.asarray(train['label']).astype('int').reshape(50000, 1)
 
         test_imgs = jnp.asarray(test['img']).reshape(10000, 3072) / 255
-        test_labels = jnp.asarray(test['label'])
+        test_labels = jnp.asarray(test['label']).astype('int').reshape(10000, 1)
 
         self.n = 50000
         self.n_val = 1000

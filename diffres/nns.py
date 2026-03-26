@@ -210,7 +210,7 @@ def pbnn_mnist(key, batch_size):
     return pbnn_phi, pbnn_psi, pbnn_forward_pass
 
 
-def pbnn_cifar10(key, batch_size, train: bool = False):
+def pbnn_cifar10(key, batch_size):
     ModuleDef = Any
 
     class ResNetBlock(linen.Module):
@@ -236,7 +236,6 @@ def pbnn_cifar10(key, batch_size, train: bool = False):
             return self.act(residual + y)
 
     class ResNetHead(linen.Module):
-        block_cls: ModuleDef
         num_filters: int = 64
         dtype: Any = jnp.float32
         act: Callable = linen.relu
@@ -248,10 +247,8 @@ def pbnn_cifar10(key, batch_size, train: bool = False):
             x = x.reshape((-1, 32, 32, 3))
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
-                linen.BatchNorm,
-                use_running_average=not train,
-                momentum=0.9,
-                epsilon=1e-5,
+                linen.GroupNorm,
+                num_groups=32,
                 dtype=self.dtype,
             )
 
@@ -284,10 +281,8 @@ def pbnn_cifar10(key, batch_size, train: bool = False):
         def __call__(self, x):
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
-                linen.BatchNorm,
-                use_running_average=not train,
-                momentum=0.9,
-                epsilon=1e-5,
+                linen.GroupNorm,
+                num_groups=32,
                 dtype=self.dtype,
             )
 
@@ -313,8 +308,9 @@ def pbnn_cifar10(key, batch_size, train: bool = False):
             x = jnp.asarray(x, self.dtype)
             return x
 
-    resnet18_head = ResNetHead(block_cls=ResNetBlock)
-    resnet18_body = ResNetBody(stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock, num_classes=10)
+    resnet18_head = ResNetHead(initial_conv_config={"kernel_size": (3, 3), "strides": 1, "padding": "SAME"})
+    resnet18_body = ResNetBody(stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock, num_classes=10,
+                               initial_conv_config={"kernel_size": (3, 3), "strides": 1, "padding": "SAME"})
     input_dims = [3072, (8, 8, 64)]
     nns = (resnet18_head, resnet18_body)
     random_argnums = (0,)

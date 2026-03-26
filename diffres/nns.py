@@ -305,8 +305,7 @@ def pbnn_cifar10(key, batch_size):
                     )(x)
             x = jnp.mean(x, axis=(1, 2))
             x = linen.Dense(self.num_classes, dtype=self.dtype)(x)
-            x = jnp.asarray(x, self.dtype)
-            return x
+            return jax.nn.log_softmax(x, axis=-1)
 
     resnet18_head = ResNetHead(initial_conv_config={"kernel_size": (3, 3), "strides": 1, "padding": "SAME"})
     resnet18_body = ResNetBody(stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock, num_classes=10,

@@ -194,7 +194,9 @@ def gumbel_softmax(key: JKey, log_ws, samples: JArray, tau: float) -> Tuple[JArr
 
 def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
                          integrator: str = 'euler',
-                         ode: bool = True) -> Tuple[JArray, JArray]:
+                         ode: bool = True,
+                         jitter: float = 0.,
+                         einsum: bool = False) -> Tuple[JArray, JArray]:
     """Differentiable and informative diffusion resampling. This implementation uses an empirical Gaussian reference.
 
     Parameters
@@ -213,6 +215,11 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         The SDE integrator.
     ode : bool
         If True, use the probability flow ODE.
+    jitter: float, default=0.
+        Add jittering to the reference covariance, to ensure numerical stability.
+    einsum: bool, default=False
+        Whether to use einsum. Introduced mainly to maximise the GPU utilisation in Berzelius. It is strange that
+        the op using einsum is slower than that using broadcasting but the GPU utilisation is maximised...
 
     Returns
     -------
@@ -230,7 +237,7 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     # mu = jnp.einsum('i,i...->...', ws, samples)
     mu = jnp.sum(ws[:, None] * samples.reshape(n, -1), axis=0).reshape(*data_shape)
     # stat_vars = jnp.einsum('i,i...->...', ws, (samples - mu) ** 2)
-    stat_vars = jnp.sum(ws[:, None] * ((samples - mu) ** 2).reshape(n, -1), axis=0).reshape(*data_shape)
+    stat_vars = jnp.sum(ws[:, None] * ((samples - mu) ** 2).reshape(n, -1), axis=0).reshape(*data_shape) + jitter
     b2 = -stat_vars * (2 * a)
     t0, T = ts[0], ts[-1]
 
@@ -244,6 +251,9 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         """(...,), (n, ...), (n, ...) -> (n, )"""
         return jnp.sum(jax.scipy.stats.norm.logpdf(x, mts, sig2ts ** 0.5).reshape(n, -1), axis=-1)
 
+    def s_i(x, t):
+        return
+
     def s(x, t):
         """Ensemble score
         (..., ), () -> (..., )
@@ -252,8 +262,11 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         mts = samples * sg + mu * (1 - sg)  # (n, ...)
         log_alps = log_ws + logpdf_trans(x, mts, sig2ts)  # (n, )
         log_alps = log_alps - jax.scipy.special.logsumexp(log_alps)
-        # return jnp.einsum('i,i...->...', jnp.exp(log_alps), -(x - mts) / sig2ts)  # I'm surprised that this is slower
-        return jnp.sum(jnp.exp(log_alps)[:, None] * (-(x - mts) / sig2ts).reshape(n, -1), axis=0).reshape(*data_shape)
+        if einsum:
+            return jnp.einsum('i,i...->...', jnp.exp(log_alps), -(x - mts) / sig2ts)  # Surprised that this is slower
+        else:
+            return jnp.sum(jnp.exp(log_alps)[:, None]
+                           * (-(x - mts) / sig2ts).reshape(n, -1), axis=0).reshape(*data_shape)
 
     def f(x, t):
         if ode:
@@ -355,7 +368,8 @@ def diffusion_resampling_generic(key: JKey, log_ws: JArray, samples: JArray,
         log_alps = log_ws + logpdf_trans(x, samples, t, 0.)  # (n, )
         log_alps = log_alps - jax.scipy.special.logsumexp(log_alps)
         return jnp.sum(jnp.exp(log_alps)[:, None] * jax.vmap(_grad_trans,
-                                                             in_axes=[None, 0, None, None])(x, samples, t, 0.).reshape(n, -1),
+                                                             in_axes=[None, 0, None, None])(x, samples, t, 0.).reshape(
+            n, -1),
                        axis=0).reshape(*data_shape)
 
     def drift(x, t):

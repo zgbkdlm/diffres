@@ -210,7 +210,7 @@ def pbnn_mnist(key, batch_size):
     return pbnn_phi, pbnn_psi, pbnn_forward_pass
 
 
-def pbnn_cifar10(key, batch_size):
+def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
     ModuleDef = Any
 
     class ResNetBlock(linen.Module):
@@ -227,7 +227,7 @@ def pbnn_cifar10(key, batch_size):
             y = self.norm()(y)
             y = self.act(y)
             y = self.conv(self.filters, (3, 3))(y)
-            y = self.norm(scale_init=linen.initializers.zeros_init())(y)
+            y = self.norm(scale_init=linen.initializers.ones_init())(y)
 
             if residual.shape != y.shape:
                 residual = self.conv(self.filters, (1, 1), self.strides, name="conv_proj")(residual)
@@ -248,7 +248,7 @@ def pbnn_cifar10(key, batch_size):
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
                 linen.GroupNorm,
-                num_groups=32,
+                num_groups=group_size,
                 dtype=self.dtype,
             )
 
@@ -282,7 +282,7 @@ def pbnn_cifar10(key, batch_size):
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
                 linen.GroupNorm,
-                num_groups=32,
+                num_groups=group_size,
                 dtype=self.dtype,
             )
 

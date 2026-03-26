@@ -210,7 +210,7 @@ def pbnn_mnist(key, batch_size):
     return pbnn_phi, pbnn_psi, pbnn_forward_pass
 
 
-def pbnn_cifar10(key, batch_size, config):
+def pbnn_cifar10(key, batch_size, train: bool = False):
     ModuleDef = Any
 
     class ResNetBlock(linen.Module):
@@ -221,10 +221,7 @@ def pbnn_cifar10(key, batch_size, config):
         strides: tuple[int, int] = (1, 1)
 
         @linen.compact
-        def __call__(
-                self,
-                x,
-        ):
+        def __call__(self, x):
             residual = x
             y = self.conv(self.filters, (3, 3), self.strides)(x)
             y = self.norm()(y)
@@ -245,7 +242,6 @@ def pbnn_cifar10(key, batch_size, config):
         act: Callable = linen.relu
         conv: ModuleDef = linen.Conv
         initial_conv_config: Optional[dict[str, Any]] = None
-        train: bool = True
 
         @linen.compact
         def __call__(self, x):
@@ -253,7 +249,7 @@ def pbnn_cifar10(key, batch_size, config):
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
                 linen.BatchNorm,
-                use_running_average=not self.train,
+                use_running_average=not train,
                 momentum=0.9,
                 epsilon=1e-5,
                 dtype=self.dtype,
@@ -283,14 +279,13 @@ def pbnn_cifar10(key, batch_size, config):
         act: Callable = linen.relu
         conv: ModuleDef = linen.Conv
         initial_conv_config: Optional[dict[str, Any]] = None
-        train: bool = True
 
         @linen.compact
         def __call__(self, x):
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
                 linen.BatchNorm,
-                use_running_average=not self.train,
+                use_running_average=not train,
                 momentum=0.9,
                 epsilon=1e-5,
                 dtype=self.dtype,

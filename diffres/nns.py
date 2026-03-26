@@ -240,7 +240,6 @@ def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
         dtype: Any = jnp.float32
         act: Callable = linen.relu
         conv: ModuleDef = linen.Conv
-        initial_conv_config: Optional[dict[str, Any]] = None
 
         @linen.compact
         def __call__(self, x):
@@ -252,17 +251,9 @@ def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
                 dtype=self.dtype,
             )
 
-            initial_conv_config = dict(self.initial_conv_config)
-            initial_conv_config.setdefault("kernel_size", 7)
-            initial_conv_config.setdefault("strides", 2)
-            initial_conv_config.setdefault("with_bias", False)
-            initial_conv_config.setdefault("padding", "SAME")
-            initial_conv_config.setdefault("name", "initial_conv")
-
-            x = conv(self.num_filters, **self.initial_conv_config)(x)
+            x = conv(self.num_filters, (3, 3), strides=(1, 1), padding='SAME', name="conv_init")(x)
             x = norm(name="bn_init")(x)
             x = linen.relu(x)
-            x = linen.max_pool(x, (3, 3), strides=(2, 2), padding="SAME")
             return x
 
     class ResNetBody(linen.Module):
@@ -275,7 +266,6 @@ def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
         dtype: Any = jnp.float32
         act: Callable = linen.relu
         conv: ModuleDef = linen.Conv
-        initial_conv_config: Optional[dict[str, Any]] = None
 
         @linen.compact
         def __call__(self, x):
@@ -285,13 +275,6 @@ def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
                 num_groups=group_size,
                 dtype=self.dtype,
             )
-
-            initial_conv_config = dict(self.initial_conv_config)
-            initial_conv_config.setdefault("kernel_size", 7)
-            initial_conv_config.setdefault("strides", 2)
-            initial_conv_config.setdefault("with_bias", False)
-            initial_conv_config.setdefault("padding", "SAME")
-            initial_conv_config.setdefault("name", "initial_conv")
 
             for i, block_size in enumerate(self.stage_sizes):
                 for j in range(block_size):
@@ -307,10 +290,9 @@ def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
             x = linen.Dense(self.num_classes, dtype=self.dtype)(x)
             return jax.nn.log_softmax(x, axis=-1)
 
-    resnet18_head = ResNetHead(initial_conv_config={"kernel_size": (3, 3), "strides": 1, "padding": "SAME"})
-    resnet18_body = ResNetBody(stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock, num_classes=10,
-                               initial_conv_config={"kernel_size": (3, 3), "strides": 1, "padding": "SAME"})
-    input_dims = [3072, (8, 8, 64)]
+    resnet18_head = ResNetHead(num_filters=64)
+    resnet18_body = ResNetBody(stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock, num_classes=10)
+    input_dims = [3072, (32, 32, 64)]
     nns = (resnet18_head, resnet18_body)
     random_argnums = (0,)
     keys = jax.random.split(key, num=len(nns))

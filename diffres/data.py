@@ -134,18 +134,28 @@ def _aug(key, image):
 class CIFAR10(DataSet):
 
     def __init__(self, key: JKey):
-        # The dataset is already well shuffled, don't perm
-        ds = load_dataset('uoft-cs/cifar10')
+        ds = load_dataset('uoft-cs/cifar10').with_format("numpy")
 
         train, test = ds['train'], ds['test']
-        train_imgs = jnp.asarray(train['img']).reshape(50000, 3072) / 255
+        train_imgs = jnp.asarray(train['img']) / 255
         train_labels = jnp.asarray(train['label']).astype('int').reshape(50000, 1)
 
-        test_imgs = jnp.asarray(test['img']).reshape(10000, 3072) / 255
+        test_imgs = jnp.asarray(test['img']) / 255
         test_labels = jnp.asarray(test['label']).astype('int').reshape(10000, 1)
 
-        self.n = 50000
-        self.n_val = 1000
+        mean = jnp.array([0.4914, 0.4822, 0.4465])
+        std = jnp.array([0.2023, 0.1994, 0.2010])
+
+        train_imgs = jnp.reshape((train_imgs - mean) / std, (50000, 3072))
+        test_imgs = jnp.reshape((test_imgs - mean) / std, (10000, 3072))
+
+        perm_inds = jax.random.permutation(key, 50000)
+
+        train_imgs = train_imgs[perm_inds]
+        train_labels = train_labels[perm_inds]
+
+        self.n = 49500
+        self.n_val = 500
         self.n_test = 10000
 
         # Training data
@@ -153,12 +163,12 @@ class CIFAR10(DataSet):
         self.ys = train_labels[:self.n]
 
         # Validation data
-        self.val_xs = test_imgs[:self.n_val]
-        self.val_ys = test_labels[:self.n_val]
+        self.val_xs = train_imgs[self.n:]
+        self.val_ys = train_labels[self.n:]
 
         # Test data
-        self.test_xs = test_imgs[self.n_val:]
-        self.test_ys = test_labels[self.n_val:]
+        self.test_xs = test_imgs
+        self.test_ys = test_labels
 
     @staticmethod
     def augmentation(key, data):

@@ -215,6 +215,8 @@ def pbnn_cifar10(key,
                  depth: int = 18,
                  group_size: int = 8):
     ModuleDef = Any
+    CIFAR_MEAN = jnp.array([0.4914, 0.4822, 0.4465])
+    CIFAR_STD = jnp.array([0.2023, 0.1994, 0.2010])
 
     class ResNetBlock(linen.Module):
         filters: int
@@ -246,7 +248,7 @@ def pbnn_cifar10(key,
 
         @linen.compact
         def __call__(self, x):
-            x = x.reshape((-1, 32, 32, 3))
+            x = (x.reshape((-1, 32, 32, 3)) - CIFAR_MEAN) / CIFAR_STD
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
                 linen.GroupNorm,

@@ -120,6 +120,7 @@ class MNIST(DataSet):
 def _aug(key, image):
     r"""Augmentation based on https://optax.readthedocs.io/en/latest/_collections/examples/cifar10_resnet.html
     """
+    # assume image is in [0, 1]
     image = jnp.reshape(image, (32, 32, 3))
     k_crop, k_flip, k_bright, k_contrast, k_sat = jax.random.split(key, 5)
     padded = jnp.pad(image, ((4, 4), (4, 4), (0, 0)), mode='constant', constant_values=0)
@@ -137,17 +138,11 @@ class CIFAR10(DataSet):
         ds = load_dataset('uoft-cs/cifar10').with_format("numpy")
 
         train, test = ds['train'], ds['test']
-        train_imgs = jnp.asarray(train['img']) / 255
+        train_imgs = jnp.reshape(jnp.asarray(train['img']) / 255, (50000, 3072))
         train_labels = jnp.asarray(train['label']).astype('int').reshape(50000, 1)
 
-        test_imgs = jnp.asarray(test['img']) / 255
+        test_imgs = jnp.reshape(jnp.asarray(test['img']) / 255, (10000, 3072))
         test_labels = jnp.asarray(test['label']).astype('int').reshape(10000, 1)
-
-        mean = jnp.array([0.4914, 0.4822, 0.4465])
-        std = jnp.array([0.2023, 0.1994, 0.2010])
-
-        train_imgs = jnp.reshape((train_imgs - mean) / std, (50000, 3072))
-        test_imgs = jnp.reshape((test_imgs - mean) / std, (10000, 3072))
 
         perm_inds = jax.random.permutation(key, 50000)
 
@@ -173,6 +168,5 @@ class CIFAR10(DataSet):
     @staticmethod
     def augmentation(key, data):
         images, labels = data
-        n = images.shape[0]
-        keys = jax.random.split(key, num=n)
+        keys = jax.random.split(key, num=images.shape[0])
         return jax.vmap(_aug, in_axes=[0, 0])(keys, images), labels

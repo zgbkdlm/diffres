@@ -13,4 +13,4 @@ mkdir -p ./cifar10/checkpoints
 mc_id=$1
 method=$2
 
-python ./cifar10/run/py --mc_id=$mc_id --r=$method
+python ./cifar10/run.py --mc_id=$mc_id --r=$method

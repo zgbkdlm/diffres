@@ -35,6 +35,9 @@ parser.add_argument('--alpha', type=float, default=0.9, help='The softening para
 
 args = parser.parse_args()
 
+#
+print(f'CIFAR10 training with {args.r} | MC ID {args.mc_id}')
+
 # Random key seed
 # Separate the key branch for data and algorithm
 mc_id = args.mc_id

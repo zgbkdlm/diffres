@@ -192,7 +192,7 @@ def gumbel_softmax(key: JKey, log_ws, samples: JArray, tau: float) -> Tuple[JArr
     return jnp.full((n,), -jnp.log(n)), jax.vmap(one_sample)(keys)
 
 
-def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
+def diffusion_resampling_(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
                          integrator: str = 'euler',
                          ode: bool = True) -> Tuple[JArray, JArray]:
     """Differentiable and informative diffusion resampling. This implementation uses an empirical Gaussian reference.
@@ -297,6 +297,123 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
     x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], rnds))
     return jnp.full((n,), -jnp.log(n)), x0s
 
+def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, ts: JArray,
+                         integrator: str = 'euler',
+                         ode: bool = True,
+                         jitter: float = 0.,
+                         einsum: bool = False) -> Tuple[JArray, JArray]:
+    """Differentiable and informative diffusion resampling. This implementation uses an empirical Gaussian reference.
+
+    Parameters
+    ----------
+    key : JKey
+        A JAX random key.
+    log_ws : JArray (n, )
+        Weights.
+    samples : JArray (n, ...)
+        Particles of leading size n and arbitrary data shape.
+    a : float
+        The forward noising parameter, must be negative.
+    ts : JArray (nsteps + 1, )
+        Time steps t0, t1, ..., tnsteps.
+    integrator : str
+        The SDE integrator.
+    ode : bool
+        If True, use the probability flow ODE.
+    jitter: float, default=0.
+        Add jittering to the reference covariance, to ensure numerical stability.
+    einsum: bool, default=False
+        Whether to use einsum. Introduced mainly to maximise the GPU utilisation in Berzelius. It is strange that
+        the op using einsum is slower than that using broadcasting but the GPU utilisation is maximised...
+
+    Returns
+    -------
+    (n, ), (n, d)
+        New log weights and particles.
+
+    #TODO: Make efficient parallel implementation
+    #TODO: Efficient grad propagation (diffrax)
+    #TODO: move b2 around
+    """
+    n = log_ws.shape[0]
+    data_shape = samples.shape[1:]
+    nsteps = ts.shape[0] - 1
+    ws = jnp.exp(log_ws)
+    # mu = jnp.einsum('i,i...->...', ws, samples)
+    mu = jnp.sum(ws[:, None] * samples.reshape(n, -1), axis=0).reshape(*data_shape)
+    # stat_vars = jnp.einsum('i,i...->...', ws, (samples - mu) ** 2)
+    stat_vars = jnp.sum(ws[:, None] * ((samples - mu) ** 2).reshape(n, -1), axis=0).reshape(*data_shape) + jitter
+    b2 = -stat_vars * (2 * a)
+    t0, T = ts[0], ts[-1]
+
+    def fwd_coeffs(t, s_):
+        delta = t - s_
+        semigroup = jnp.exp(a * delta)
+        sig2t = stat_vars * (1 - jnp.exp(2 * a * delta))
+        return semigroup, sig2t
+
+    def logpdf_trans(x, mts, sig2ts):
+        """(...,), (n, ...), (n, ...) -> (n, )"""
+        return jnp.sum(jax.scipy.stats.norm.logpdf(x, mts, sig2ts ** 0.5).reshape(n, -1), axis=-1)
+
+    def s_i(x, t):
+        return
+
+    def s(x, t):
+        """Ensemble score
+        (..., ), () -> (..., )
+        """
+        sg, sig2ts = fwd_coeffs(t, t0)
+        mts = samples * sg + mu * (1 - sg)  # (n, ...)
+        log_alps = log_ws + logpdf_trans(x, mts, sig2ts)  # (n, )
+        log_alps = log_alps - jax.scipy.special.logsumexp(log_alps)
+        if einsum:
+            return jnp.einsum('i,i...->...', jnp.exp(log_alps), -(x - mts) / sig2ts)  # Surprised that this is slower
+        else:
+            return jnp.sum(jnp.exp(log_alps)[:, None]
+                           * (-(x - mts) / sig2ts).reshape(n, -1), axis=0).reshape(*data_shape)
+
+    def f(x, t):
+        if ode:
+            return a * mu + 0.5 * b2 * jax.vmap(s, in_axes=[0, None])(x, T - t)
+        else:
+            return a * mu + b2 * jax.vmap(s, in_axes=[0, None])(x, T - t)
+
+    def drift(x, t):
+        return -a * x + f(x, t)
+
+    # SDE simulation
+    key, _ = jax.random.split(key)
+    xTs = mu + stat_vars ** 0.5 * jax.random.normal(key, (n, *data_shape))
+
+    def scan_body(carry, elem):
+        x = carry
+        t_km1, tk, rnd = elem
+
+        dt = tk - t_km1
+        if integrator == 'euler':
+            m, scale = euler_maruyama(drift, 0. if ode else b2 ** 0.5, x, t_km1, dt)
+        elif integrator == 'lord_and_rougemont':
+            m, scale = lord_and_rougemont(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
+        elif integrator == 'jentzen_and_kloeden':
+            m, scale = jentzen_and_kloeden(-a, f, 0. if ode else b2 ** 0.5, x, t_km1, dt)
+        elif integrator == 'diffrax' and ode:
+            term = ODETerm(lambda t_, x_, args: drift(x_, t_))
+            m = diffeqsolve(term, Euler(), t0=0., t1=T, dt0=T / (ts.shape[0] - 1), y0=xTs).ys[0]
+            scale = 0.
+        elif integrator == 'tweedie' and not ode:
+            sg, trans_vars = fwd_coeffs(tk, t_km1)
+            m, scale = tweedie(sg, trans_vars, jax.vmap(s, in_axes=[0, None]), mu, x, T - t_km1)
+        elif integrator == 'tme':
+            raise NotImplementedError('TME not tested.')
+        else:
+            raise NotImplementedError(f'Unknown integrator {integrator}.')
+        return m + scale * rnd, None
+
+    key, _ = jax.random.split(key)
+    rnds = jax.random.normal(key, (nsteps, n, *data_shape))
+    x0s, _ = jax.lax.scan(scan_body, xTs, (ts[:-1], ts[1:], rnds))
+    return jnp.full((n,), -jnp.log(n)), x0s
 
 def diffusion_resampling_generic(key: JKey, log_ws: JArray, samples: JArray,
                                  ref_sampler: Callable[[JKey], JArray],

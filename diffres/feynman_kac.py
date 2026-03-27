@@ -1,8 +1,4 @@
 """
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
 Generic Feynman--Kac models.
 """
 import math
@@ -78,21 +74,24 @@ def smc_feynman_kac(key: JKey,
         samples0 = m0(key_init, pytree_init)
     else:
         samples0 = m0
-    log_ws0_ = log_g0(samples0, pytree_init)
+    log_ws0_ = log_g0(samples0, pytree_init) 
     c = jax.scipy.special.logsumexp(log_ws0_)
     log_ws0 = log_ws0_ - c
-    nll0 = -c
+    nll0 = -(c - jnp.log(nparticles)) #TODO: - jnp.log(nparticles) --> nll0 = -(c - jnp.log(nparticles)) #-c
     ess0 = compute_ess(log_ws0)
 
     def scan_body(carry, elem):
-        samples, log_ws, nll_, ess = carry
-        pytree_k, key_k = elem
+        samples, log_ws, nll_, ess, norm_sum_ = carry
+        idx_k, pytree_k, key_k = elem
         key_resample, key_markov = jax.random.split(key_k)
 
-        log_ws, samples = jax.lax.cond(ess < resampling_threshold * nparticles,
-                                       lambda _: (resampling(key_resample, log_ws, samples)),
-                                       lambda _: (log_ws, samples),
-                                       None)
+        resampling_flag = (ess < resampling_threshold * nparticles) #& (idx_k > 10)
+        log_ws, samples = jax.lax.cond(
+            resampling_flag,
+            lambda _: resampling(key_resample, log_ws, samples),
+            lambda _: (log_ws, samples),
+            None)
+
         log_ws_g, prop_samples = m_log_g(key_markov, samples, pytree_k)
         log_ws = log_ws + log_ws_g
 
@@ -100,19 +99,24 @@ def smc_feynman_kac(key: JKey,
         log_ws = log_ws - c_
         ess = compute_ess(log_ws)
 
-        return (prop_samples, log_ws, nll_ - c_, ess), (prop_samples, log_ws, ess) if return_path else ess
+        step_norm_sum = jnp.mean(prop_samples**2) / nsteps
+        norm_sum_ += step_norm_sum
+
+        return (prop_samples, log_ws, nll_ - c_, ess, norm_sum_), (prop_samples, log_ws, ess) if return_path else ess
 
     keys = jax.random.split(key_body, num=nsteps)
+    idxs = jnp.arange(nsteps)
+    norm_sum_0 = 0.0
     if return_path:
-        (_, _, nll, _), (sampless, log_wss, esss) = jax.lax.scan(scan_body,
-                                                                 (samples0, log_ws0, nll0, ess0),
-                                                                 (pytree_scan, keys))
-        return leading_concat(samples0, sampless), leading_concat(log_ws0, log_wss), nll, leading_concat(ess0, esss)
+        (_, _, nll, _, norm_sum), (sampless, log_wss, esss) = jax.lax.scan(scan_body,
+                                                                 (samples0, log_ws0, nll0, ess0, norm_sum_0),
+                                                                 (idxs, pytree_scan, keys))
+        return leading_concat(samples0, sampless), leading_concat(log_ws0, log_wss), nll, leading_concat(ess0, esss), norm_sum
     else:
-        (samplesN, log_wsN, nll, _), esss = jax.lax.scan(scan_body,
-                                                         (samples0, log_ws0, nll0, ess0),
-                                                         (pytree_scan, keys))
-        return samplesN, log_wsN, nll, leading_concat(ess0, esss)
+        (samplesN, log_wsN, nll, _, norm_sum), esss = jax.lax.scan(scan_body,
+                                                         (samples0, log_ws0, nll0, ess0, norm_sum_0),
+                                                         (idxs, pytree_scan, keys))
+        return samplesN, log_wsN, nll, leading_concat(ess0, esss), norm_sum
 
 
 def compute_ess(log_ws: JArray) -> JArray:

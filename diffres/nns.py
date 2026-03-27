@@ -210,7 +210,10 @@ def pbnn_mnist(key, batch_size):
     return pbnn_phi, pbnn_psi, pbnn_forward_pass
 
 
-def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
+def pbnn_cifar10(key,
+                 batch_size: int,
+                 depth: int = 18,
+                 group_size: int = 8):
     ModuleDef = Any
 
     class ResNetBlock(linen.Module):
@@ -290,10 +293,11 @@ def pbnn_cifar10(key, batch_size: int, group_size: int = 8):
             x = linen.Dense(self.num_classes, dtype=self.dtype)(x)
             return jax.nn.log_softmax(x, axis=-1)
 
-    resnet18_head = ResNetHead(num_filters=64)
-    resnet18_body = ResNetBody(stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock, num_classes=10)
+    configs = [2, 2, 2, 2] if depth == 18 else [3, 4, 6, 3]
+    resnet_head = ResNetHead(num_filters=64)
+    resnet_body = ResNetBody(stage_sizes=configs, block_cls=ResNetBlock, num_classes=10)
     input_dims = [3072, (32, 32, 64)]
-    nns = (resnet18_head, resnet18_body)
+    nns = (resnet_head, resnet_body)
     random_argnums = (0,)
     keys = jax.random.split(key, num=len(nns))
 

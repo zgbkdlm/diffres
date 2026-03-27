@@ -248,7 +248,7 @@ def pbnn_cifar10(key,
 
         @linen.compact
         def __call__(self, x):
-            x = (x.reshape((-1, 32, 32, 3)) - CIFAR_MEAN) / CIFAR_STD
+            x = x.reshape((-1, 32, 32, 3))
             conv = partial(self.conv, use_bias=False, dtype=self.dtype)
             norm = partial(
                 linen.GroupNorm,

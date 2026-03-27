@@ -85,7 +85,8 @@ eps = args.eps
 
 def resampling(key_, log_ws_, samples_):
     if args.r == 'diffusion':
-        return diffusion_resampling(key_, log_ws_, samples_, a, ts, integrator=integrator, ode=ode, jitter=jitter)
+        return diffusion_resampling(key_, log_ws_, samples_, a, ts, integrator=integrator, ode=ode,
+                                    jitter=jitter, einsum=True)
     elif args.r == 'ot':
         return ensemble_ot(key_, log_ws_, samples_, eps, implicit_diff=False)
     elif args.r == 'gumbel':
@@ -167,6 +168,7 @@ val_current = 0.
 losses_train = np.zeros(total_niters)
 losses_val = np.zeros(total_niters)
 esss_train = np.zeros(total_niters)
+fn_suffix = f'{args.r}-{mc_id}'
 
 posterior = (-jnp.log(nparticles) * jnp.ones(nparticles),
              jnp.tile(pbnn_phi[0][None, ...], (nparticles, 1)))
@@ -186,8 +188,7 @@ for i in range(args.nepochs):
             val_current = val_metric(*posterior, psi)
             if val_current > val_best:
                 val_best = val_current
-                fn_suffix = f'{args.r}-{mc_id}'
-                np.savez(f'./cifar10/checkpoints/cifar10-{fn_suffix}',
+                np.savez(f'./cifar10/checkpoints/cp-{fn_suffix}',
                          log_ws=posterior[0], samples=posterior[1], psi=psi, i=i, j=j)
 
         idx = i * (data_size // chunk_size) + j
@@ -200,3 +201,6 @@ for i in range(args.nepochs):
               f'| Train loss {loss:.5f} | ess {mean_ess:.3f} '
               f'| Val current {val_current:.3f} '
               f'| Val best {val_best:.3f}')
+
+np.savez(f'./cifar10/checkpoints/log-{fn_suffix}',
+         losses_train=losses_train, losses_val=losses_val, esss_train=esss_train)

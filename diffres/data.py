@@ -138,10 +138,10 @@ class CIFAR10(DataSet):
         ds = load_dataset('uoft-cs/cifar10').with_format("numpy")
 
         train, test = ds['train'], ds['test']
-        train_imgs = jnp.reshape(jnp.asarray(train['img']) / 255, (50000, 3072))
+        train_imgs = jnp.asarray(train['img']).reshape(50000, 3072) / 255
         train_labels = jnp.asarray(train['label']).astype('int').reshape(50000, 1)
 
-        test_imgs = jnp.reshape(jnp.asarray(test['img']) / 255, (10000, 3072))
+        test_imgs = jnp.asarray(test['img']).reshape(10000, 3072) / 255
         test_labels = jnp.asarray(test['label']).astype('int').reshape(10000, 1)
 
         perm_inds = jax.random.permutation(key, 50000)

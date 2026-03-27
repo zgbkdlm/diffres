@@ -29,13 +29,13 @@ parser.add_argument('--integrator', type=str, default='jentzen_and_kloeden', hel
 parser.add_argument('--sde', action='store_true', help='The probability flow model or the SDE model.')
 parser.add_argument('--jitter', type=float, default=1e-5, help='The probability flow model or the SDE model.')
 
-parser.add_argument('--tau', type=float, default=0.1, help='The gumbel temperature.')
+parser.add_argument('--tau', type=float, default=0.3, help='The gumbel temperature.')
 parser.add_argument('--eps', type=float, default=1., help='The OT regulariser.')
-parser.add_argument('--alpha', type=float, default=0.9, help='The softening parameter.')
+parser.add_argument('--alpha', type=float, default=0.7, help='The softening parameter.')
 
 args = parser.parse_args()
 
-#
+# Info
 print(f'CIFAR10 training with {args.r} | MC ID {args.mc_id}')
 
 # Random key seed
@@ -186,7 +186,8 @@ for i in range(args.nepochs):
             val_current = val_metric(*posterior, psi)
             if val_current > val_best:
                 val_best = val_current
-                np.savez(f'./cifar10/checkpoints/checkpoint-cifar10-best',
+                fn_suffix = f'{args.r}-{mc_id}'
+                np.savez(f'./cifar10/checkpoints/cifar10-{fn_suffix}',
                          log_ws=posterior[0], samples=posterior[1], psi=psi, i=i, j=j)
 
         idx = i * (data_size // chunk_size) + j

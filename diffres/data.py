@@ -126,9 +126,9 @@ def _aug(key, image):
     padded = jnp.pad(image, ((4, 4), (4, 4), (0, 0)), mode='constant', constant_values=0)
     image = pix.random_crop(k_crop, padded, (32, 32, 3))
     image = pix.random_flip_left_right(k_flip, image)
-    image = pix.random_brightness(k_bright, image, max_delta=0.2)
-    image = pix.random_contrast(k_contrast, image, lower=0.8, upper=1.2)
-    image = pix.random_saturation(k_sat, image, lower=0.8, upper=1.2)
+    # image = pix.random_brightness(k_bright, image, max_delta=0.2)
+    # image = pix.random_contrast(k_contrast, image, lower=0.8, upper=1.2)
+    # image = pix.random_saturation(k_sat, image, lower=0.8, upper=1.2)
     return jnp.clip(image, 0.0, 1.0).reshape(3072)
 
 

@@ -9,14 +9,14 @@ from diffres.data import CIFAR10
 from diffres.nns import pbnn_cifar10
 from diffres.tools import op_except_leading, accuracy
 
-parser = argparse.ArgumentParser(description='Synthetic regression.')
+parser = argparse.ArgumentParser(description='CIFAR10 classification.')
 parser.add_argument('--mc_id', type=int, default=0, help='The MC seed id.')
 
 parser.add_argument('--nparticles', type=int, default=8, help='The number of SMC samples.')
 parser.add_argument('--sg', type=float, default=.99, help='The transition semigroup.')
 parser.add_argument('--depth', type=int, default=18, help='The resnet depth.')
 parser.add_argument('--nsteps', type=int, default=2, help='The number of filtering steps.')
-parser.add_argument('--batch_size', type=int, default=128, help='Batch size.')
+parser.add_argument('--batch_size', type=int, default=256, help='Batch size.')
 parser.add_argument('--nepochs', type=int, default=200, help='The maximum number of iterations.')
 
 parser.add_argument('--r', type=str, default='diffusion', help='The resampling method.')
@@ -155,8 +155,8 @@ def val_metric(log_ws_, samples_, psi_):
 # Optimisation setup
 total_niters = args.nepochs * (data_size // chunk_size)
 warmup_niters = 10 * (data_size // chunk_size)
-lr_schedule = optax.warmup_cosine_decay_schedule(init_value=0., peak_value=1e-2, warmup_steps=warmup_niters,
-                                                 decay_steps=total_niters, end_value=1e-5)
+lr_schedule = optax.warmup_cosine_decay_schedule(init_value=0., peak_value=4e-2, warmup_steps=warmup_niters,
+                                                 decay_steps=total_niters, end_value=4e-5)
 optimiser = optax.chain(optax.clip_by_global_norm(1.0),
                         optax.adam(learning_rate=lr_schedule))
 psi = pbnn_psi[0]
@@ -183,12 +183,12 @@ for i in range(args.nepochs):
         posterior = aux_out[0]
         mean_ess = np.mean(aux_out[-1])
 
-        # Check fo every 5 iters
+        # Check fo every 5 iters and save the best val
         if (j + 1) % 5 == 0:
             val_current = val_metric(*posterior, psi)
             if val_current > val_best:
                 val_best = val_current
-                np.savez(f'./cifar10/checkpoints/cp-{fn_suffix}',
+                np.savez(f'./cifar10/checkpoints/cp-best-{fn_suffix}',
                          log_ws=posterior[0], samples=posterior[1], psi=psi, i=i, j=j)
 
         idx = i * (data_size // chunk_size) + j
@@ -201,6 +201,10 @@ for i in range(args.nepochs):
               f'| Train loss {loss:.5f} | ess {mean_ess:.3f} '
               f'| Val current {val_current:.3f} '
               f'| Val best {val_best:.3f}')
+
+    if (i + 1) % 20 == 0:
+        np.savez(f'./cifar10/checkpoints/cp-{i}-{fn_suffix}',
+                 log_ws=posterior[0], samples=posterior[1], psi=psi)
 
 np.savez(f'./cifar10/checkpoints/log-{fn_suffix}',
          losses_train=losses_train, losses_val=losses_val, esss_train=esss_train)

@@ -62,9 +62,12 @@ for method in methods:
                                                           torch.tensor(np.asarray(dataset.test_ys[:, 0])),
                                                           num_classes=10, n_bins=15, norm='l1')
 
-    print(f'{method} acc', np.mean(np.sum(np.exp(log_wss) * accs, axis=-1)))
-    print(f'{method} f1', np.mean(np.sum(np.exp(log_wss) * f1s, axis=-1)))
-    print(f'{method} ece', np.mean(np.sum(np.exp(log_wss) * eces, axis=-1)))
+    mean, std = np.mean(np.sum(np.exp(log_wss) * accs, axis=-1)), np.std(np.sum(np.exp(log_wss) * accs, axis=-1))
+    print(f'{method} Acc mean {mean}, std {std}')
+    mean, std = np.mean(np.sum(np.exp(log_wss) * f1s, axis=-1)), np.std(np.sum(np.exp(log_wss) * f1s, axis=-1))
+    print(f'{method} F1 mean {mean}, std {std}')
+    mean, std = np.mean(np.sum(np.exp(log_wss) * eces, axis=-1)), np.std(np.sum(np.exp(log_wss) * eces, axis=-1))
+    print(f'{method} ECE mean {mean}, std {std}')
 
 # Plot
 for method in methods:

@@ -16,7 +16,7 @@ parser.add_argument('--nsteps', type=int, default=256, help='Number of time step
 parser.add_argument('--mT', type=float, default=3., help='The model end time.')
 parser.add_argument('--nparticles', type=int, default=64, help='Number of nparticles.')
 parser.add_argument('--lr', type=float, default=5e-3, help='Learning rate.')
-parser.add_argument('--niters', type=int, default=1000, help='Number of learning iterations.')
+parser.add_argument('--niters', type=int, default=1200, help='Number of learning iterations.')
 parser.add_argument('--npreds', type=int, default=100, help='Number of ensemble predictions.')
 parser.add_argument('--tau', type=float, default=0.5, help='The softmax temperature.')
 args = parser.parse_args()

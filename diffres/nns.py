@@ -134,7 +134,7 @@ class NNLoktaVolterra(nnx.Module):
     def __call__(self, x: JArray, dw: JArray):
         if x.shape != dw.shape:
             raise AssertionError('x, dw size must match.')
-        z = jnp.concatenate([x, dw / (self.dt ** 0.5)], axis=-1)
+        z = jnp.concatenate([x, dw], axis=-1)
         return x + self.linear3(self.act(self.linear2(self.act(self.linear1(z))))) * self.dt
 
 

@@ -128,14 +128,13 @@ class NNLoktaVolterra(nnx.Module):
         self.dt = dt
         self.linear1 = nnx.Linear(4, 32, kernel_init=kernel_init_lokta, param_dtype=jnp.float64, rngs=rngs)
         self.act = nnx.swish
-        self.linear2 = nnx.Linear(32, 32, kernel_init=kernel_init_lokta, param_dtype=jnp.float64, rngs=rngs)
-        self.linear3 = nnx.Linear(32, 2, kernel_init=kernel_init_lokta, param_dtype=jnp.float64, rngs=rngs)
+        self.linear2 = nnx.Linear(32, 2, kernel_init=kernel_init_lokta, param_dtype=jnp.float64, rngs=rngs)
 
     def __call__(self, x: JArray, dw: JArray):
         if x.shape != dw.shape:
             raise AssertionError('x, dw size must match.')
         z = jnp.concatenate([x, dw], axis=-1)
-        return x + self.linear3(self.act(self.linear2(self.act(self.linear1(z))))) * self.dt
+        return x + self.linear2(self.act(self.linear1(z))) * self.dt
 
 
 def pbnn_regression(key, batch_size):

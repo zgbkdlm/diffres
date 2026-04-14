@@ -251,9 +251,6 @@ def diffusion_resampling(key: JKey, log_ws: JArray, samples: JArray, a: float, t
         """(...,), (n, ...), (n, ...) -> (n, )"""
         return jnp.sum(jax.scipy.stats.norm.logpdf(x, mts, sig2ts ** 0.5).reshape(n, -1), axis=-1)
 
-    def s_i(x, t):
-        return
-
     def s(x, t):
         """Ensemble score
         (..., ), () -> (..., )

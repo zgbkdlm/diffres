@@ -18,6 +18,9 @@ parser.add_argument('--nparticles', type=int, default=64, help='Number of nparti
 parser.add_argument('--lr', type=float, default=5e-3, help='Learning rate.')
 parser.add_argument('--niters', type=int, default=1000, help='Number of learning iterations.')
 parser.add_argument('--npreds', type=int, default=100, help='Number of ensemble predictions.')
+parser.add_argument('--r', type=str, default='ot', help='The resampling method. ("ot", "gumbel", "soft", "stopped")')
+parser.add_argument('--tau', type=float, default=0.5, help='The softmax temperature.')
+parser.add_argument('--eps', type=float, default=1., help='The OT regulariser.')
 parser.add_argument('--alpha', type=float, default=0.5, help='The softening parameter.')
 args = parser.parse_args()
 
@@ -78,11 +81,24 @@ xs, ys = simulate_ssm(key, f)
 
 # Run PF with the true model
 nparticles = args.nparticles
+tau = args.tau
 alpha = args.alpha
+eps = args.eps
+resampling_method = args.r
 
 
+@jax.jit
 def resampling(key_, log_ws_, samples_):
-    return soft_resampling(key_, log_ws_, samples_, alpha)
+    if resampling_method == 'gumbel':
+        return gumbel_softmax(key_, log_ws_, samples_, tau)
+    elif resampling_method == 'ot':
+        return ensemble_ot(key_, log_ws_, samples_, eps, implicit_diff=False)
+    elif resampling_method == 'soft':
+        return soft_resampling(key_, log_ws_, samples_, alpha)
+    elif resampling_method == 'stopped':
+        return multinomial_stopped(key_, log_ws_, samples_)
+    else:
+        raise NotImplementedError(f'Resampling method {resampling_method} not implemented')
 
 
 def m0_sampler(key_, _):
@@ -107,7 +123,7 @@ sampless, log_wss, target_nll, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_l
 # NN learning
 key, _ = jax.random.split(key)
 model = NNLoktaVolterra(dt=dt, rngs=nnx.Rngs(key))
-optimiser = optax.lion(args.lr)
+optimiser = optax.adamw(args.lr)
 optimiser = nnx.Optimizer(model, optimiser, wrt=nnx.Param)
 
 
@@ -130,8 +146,8 @@ def train_step(model_, optimiser_, key_):
     return loss_
 
 
-print_prefix = f'Soft ({mc_id}) | alpha {alpha}'
-filename_prefix = f'soft-{alpha}-'
+print_prefix = f'Gumbel ({mc_id}) | tau {tau}'
+filename_prefix = f'gumbel-{tau}-'
 losses = np.zeros(args.niters)
 for i in range(args.niters):
     key, _ = jax.random.split(key)

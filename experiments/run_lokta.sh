@@ -14,15 +14,15 @@ mkdir -p ./lokta/results
 # Reference methods
 for mc_id in {0..19}
 do
-  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.1 &
-  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.3 &
-  python ./lokta/gumbel.py --mc_id=$mc_id --tau=0.5 &
-  python ./lokta/soft.py --mc_id=$mc_id --alpha=0.5 &
-  python ./lokta/soft.py --mc_id=$mc_id --alpha=0.7 &
-  python ./lokta/soft.py --mc_id=$mc_id --alpha=0.9
-  python ./lokta/ot.py --mc_id=$mc_id --eps=0.5 &
-  python ./lokta/ot.py --mc_id=$mc_id --eps=1.0 &
-  python ./lokta/ot.py --mc_id=$mc_id --eps=1.5
+  python ./lokta/others.py --mc_id=$mc_id --r="gumbel" --tau=0.1 &
+  python ./lokta/others.py --mc_id=$mc_id --r="gumbel" --tau=0.3 &
+  python ./lokta/others.py --mc_id=$mc_id --r="gumbel" --tau=0.5 &
+  python ./lokta/others.py --mc_id=$mc_id --r="soft" --alpha=0.5 &
+  python ./lokta/others.py --mc_id=$mc_id --r="soft" --alpha=0.7 &
+  python ./lokta/others.py --mc_id=$mc_id --r="soft" --alpha=0.9
+  python ./lokta/others.py --mc_id=$mc_id --r="ot" --eps=0.5 &
+  python ./lokta/others.py --mc_id=$mc_id --r="ot" --eps=1.0 &
+  python ./lokta/others.py --mc_id=$mc_id --r="ot" --eps=1.5
 done
 
 # Diffusion

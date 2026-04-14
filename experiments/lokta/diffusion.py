@@ -117,7 +117,7 @@ sampless, log_wss, target_nll, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_l
 # NN learning
 key, _ = jax.random.split(key)
 model = NNLoktaVolterra(dt=dt, rngs=nnx.Rngs(key))
-optimiser = optax.lion(args.lr)
+optimiser = optax.adamw(args.lr)
 optimiser = nnx.Optimizer(model, optimiser, wrt=nnx.Param)
 
 

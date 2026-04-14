@@ -146,8 +146,19 @@ def train_step(model_, optimiser_, key_):
     return loss_
 
 
-print_prefix = f'Gumbel ({mc_id}) | tau {tau}'
-filename_prefix = f'gumbel-{tau}-'
+if resampling_method == 'gumbel':
+    print_prefix = f'Gumbel ({mc_id}) | tau {tau}'
+    filename_prefix = f'gumbel-{tau}-'
+elif resampling_method == 'ot':
+    print_prefix = f'OT ({mc_id}) | eps {eps}'
+    filename_prefix = f'ot-{eps}-'
+elif resampling_method == 'soft':
+    print_prefix = f'Soft ({mc_id}) | alpha {alpha}'
+    filename_prefix = f'soft-{alpha}-'
+else:
+    print_prefix = f'Stopped ({mc_id})'
+    filename_prefix = f'stopped-'
+
 losses = np.zeros(args.niters)
 for i in range(args.niters):
     key, _ = jax.random.split(key)

@@ -122,3 +122,25 @@ for alpha in alphas:
     else:
         print(f'soft {alpha} loss not tested. Pass')
         pass
+
+# Print for Stopped
+errs_preds = np.zeros(num_mcs)
+errs_loss = np.zeros(num_mcs)
+nan_flags = np.zeros(num_mcs).astype(bool)
+
+filename_prefix = f'./lokta/results/stopped-'
+if os.path.isfile(filename_prefix + f'0.npz'):
+    for mc_id in range(num_mcs):
+        data = np.load(filename_prefix + f'{mc_id}.npz')
+        errs_preds[mc_id] = data['pred_err']
+        errs_loss[mc_id] = np.abs(data['losses'][-1] - data['target_nll'])
+        nan_flags[mc_id] = check_nan(data['losses'][-1], errs_preds[mc_id])
+
+    num_success = np.sum(~nan_flags)
+    print(
+        f'Stopped '
+        f'| pred err {statistics2latex(np.mean(errs_preds[~nan_flags]), np.std(errs_preds[~nan_flags]), 0)} '
+        f'| Success {num_success}')
+else:
+    print(f'stopped loss not tested. Pass')
+    pass

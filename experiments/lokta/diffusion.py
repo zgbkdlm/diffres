@@ -92,7 +92,7 @@ ode = not args.sde
 
 
 def resampling(key_, log_ws_, samples_):
-    return diffusion_resampling(key_, log_ws_, samples_, a, ts, integrator=integrator, ode=ode)
+    return diffusion_resampling(key_, log_ws_, samples_, a, ts, integrator=integrator, ode=ode, jitter=1e-5)
 
 
 def m0_sampler(key_, _):
@@ -117,7 +117,7 @@ sampless, log_wss, target_nll, *_ = smc_feynman_kac(key, m0_sampler, log_g0, m_l
 # NN learning
 key, _ = jax.random.split(key)
 model = NNLoktaVolterra(dt=dt, rngs=nnx.Rngs(key))
-optimiser = optax.lion(args.lr)
+optimiser = optax.adamw(args.lr)
 optimiser = nnx.Optimizer(model, optimiser, wrt=nnx.Param)
 
 

@@ -115,6 +115,31 @@ def smc_feynman_kac(key: JKey,
         return samplesN, log_wsN, nll, leading_concat(ess0, esss)
 
 
+def bootstrap_backward_smoother(key: JKey,
+                                filtering_samples: JArray, filtering_log_ws: JArray,
+                                logpdf_trans: Callable) -> JArray:
+    """Backward particle smoother by using the results from a filter.
+    This returns one path
+    """
+
+    def scan_body(carry, elem):
+        x_kp1 = carry
+        samples_k, log_ws_k, key_ = elem
+
+        log_ws = log_ws_k + logpdf_trans(x_kp1, samples_k)
+        log_ws = log_ws - jax.scipy.special.logsumexp(log_ws)
+        u_k = jax.random.choice(key_, samples_k, axis=0, p=jnp.exp(log_ws))
+        return u_k, u_k
+
+    nsteps = filtering_samples.shape[0] - 1
+    key_last, key_smoother = jax.random.split(key, num=2)
+    xT = jax.random.choice(key, filtering_samples[-1], p=jnp.exp(filtering_log_ws[-1]), axis=0)
+    traj = jax.lax.scan(scan_body, xT, (filtering_samples[:-1], filtering_log_ws[:-1],
+                                        jax.random.split(key_smoother, num=nsteps)),
+                        reverse=True)[1]
+    return leading_concat(traj, xT)
+
+
 def compute_ess(log_ws: JArray) -> JArray:
     """Effective sample size.
     """

@@ -324,11 +324,13 @@ def accuracy(predicted_logits: Array, true_labels: Array) -> JFloat:
     return n_corrected_preds / predicted_labels.shape[0]
 
 
-def sum_except_leading(arr: Array) -> JArray:
-    """Sum over an array except for the leading axis.
+def op_except_leading(op: Callable, arr: Array) -> JArray:
+    """Applying a jax op over an array except for the leading axis.
 
     Parameters
     ----------
+    op : Callable
+        A JAX operator, e.g., jnp.sum or jnp.mean.
     arr : (n, ...) or (n, )
         When the array's ndim is larger than 1, then all axes except for the leading one are summed.
         However, when the array is 1-dimensional, this function reduces to a standard sum.
@@ -339,9 +341,9 @@ def sum_except_leading(arr: Array) -> JArray:
         The sum of the array except for the leading axis.
     """
     if arr.ndim == 1:
-        return jnp.sum(arr)
+        return op(arr)
     else:
-        return jnp.sum(jnp.reshape(arr, (arr.shape[0], -1)), axis=-1)
+        return op(jnp.reshape(arr, (arr.shape[0], -1)), axis=-1)
 
 
 def array2latex(arr: Array) -> str:

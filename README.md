@@ -1,6 +1,6 @@
 # Diffusion differentiable resampling
 
-This repository features implementation for the paper "Diffusion differential resampling".
+This repository features implementation for the paper "Diffusion differential resampling" in ICML 2026.
 In this paper, we have introduced a new **differentiable-by-construction**, **consistent**, and **informative** resampling method via diffusion models. 
 Check out our preprint for details at https://arxiv.org/abs/2512.10401.
 
@@ -53,11 +53,11 @@ These scripts also guarantee to *exactly* reproduce the tables and figures in th
 Please cite using the following bibtex. 
 
 ```bibtex
-@article{Andersson2025diffres, 
+@inproceedings{Andersson2025diffres, 
     author = {Andersson, Jennifer R. and Zhao, Zheng}, 
     title = {Diffusion differentiable resampling},
-    journal = {arXiv preprint arXiv:2512.10401},
-    year = {2025},
+    booktitle = {Proceedings of the 43rd International Conference on Machine Learning},
+    year = {2026}
 }
 ```
 
